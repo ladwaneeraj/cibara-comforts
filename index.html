@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cibara Comforts - Lodge in Harihar</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Header Section -->
+    <header>
+      <div class="logo">
+        <span class="logo-yellow">Cibara</span>
+        <span class="logo-blue">Comforts</span>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#rooms">Rooms</a></li>
+          <li><a href="#amenities">Amenities</a></li>
+          <li><a href="#location">Location</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+        </ul>
+        <div class="hamburger" id="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero Section with Sliding Carousel -->
+    <section id="home" class="hero">
+      <div class="carousel">
+        <div
+          class="carousel-slide"
+          style="background-image: url('images/hero1.jpg')"
+        ></div>
+        <div
+          class="carousel-slide"
+          style="background-image: url('images/hero2.jpg')"
+        ></div>
+        <div
+          class="carousel-slide"
+          style="background-image: url('images/hero3.jpg')"
+        ></div>
+        <div
+          class="carousel-slide"
+          style="background-image: url('images/hero4.jpg')"
+        ></div>
+        <div
+          class="carousel-slide"
+          style="background-image: url('images/hero5.jpg')"
+        ></div>
+      </div>
+      <div class="hero-text">
+        <h1>Welcome to Cibara Comforts</h1>
+        <p>Your Home in Harihar</p>
+        <a href="#booking" class="button">Book Now</a>
+      </div>
+    </section>
+
+    <!-- Rooms Section -->
+    <section id="rooms" class="rooms-section">
+      <h2>Our Rooms</h2>
+      <div class="room-cards">
+        <!-- Card 1: Premium Room -->
+        <div class="room-card" data-room-type="premium">
+          <div class="image-slider">
+            <img
+              src="rooms/premium1.jpeg"
+              alt="Premium Room 1"
+              class="active"
+            />
+            <img src="rooms/premium2.jpeg" alt="Premium Room 2" />
+            <img src="rooms/premium3.jpeg" alt="Premium Room 3" />
+            <img src="rooms/premium4.jpeg" alt="Premium Room 4" />
+          </div>
+          <div class="room-info">
+            <h3>Premium Room</h3>
+            <p>Luxurious stay with premium facilities.</p>
+            <p class="price">₹1,100 / night</p>
+            <button class="book-now-btn">
+              <a href="tel:+919482831381">Contact Now</a>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Double Room -->
+        <div class="room-card" data-room-type="double">
+          <div class="image-slider">
+            <div class="slider-wrapper">
+              <img
+                src="rooms/double1.jpeg"
+                alt="Double Room 1"
+                class="active"
+              />
+              <img src="rooms/double2.jpeg" alt="Double Room 2" />
+              <img src="rooms/double3.jpeg" alt="Double Room 3" />
+            </div>
+          </div>
+          <div class="room-info">
+            <h3>Double Room</h3>
+            <p>Ideal for couples or small families.</p>
+            <p class="price">₹800 / night</p>
+            <button class="book-now-btn">
+              <a href="tel:+919482831381">Contact Now</a>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3: Single Room -->
+        <div class="room-card" data-room-type="single">
+          <div class="image-slider">
+            <img src="rooms/single1.jpg" alt="Single Room 1" class="active" />
+            <img src="rooms/single2.jpg" alt="Single Room 2" />
+            <img src="rooms/single3.jpg" alt="Single Room 3" />
+          </div>
+          <div class="room-info">
+            <h3>Single Room</h3>
+            <p>Comfortable stay for solo travelers.</p>
+            <p class="price">₹550 / night</p>
+            <button class="book-now-btn">
+              <a href="tel:+919482831381">Contact Now</a>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 4: Dorms -->
+        <div class="room-card" data-room-type="dorms">
+          <div class="image-slider">
+            <img src="rooms/dorm1.jpg" alt="Dorm 1" class="active" />
+            <img src="rooms/dorm3.jpg" alt="Dorm 2" />
+            <img src="rooms/dorm4.jpg" alt="Dorm 3" />
+          </div>
+          <div class="room-info">
+            <h3>Dorms</h3>
+            <p>Affordable shared accommodation.</p>
+            <p class="price">₹300 / night</p>
+            <button class="book-now-btn">
+              <a href="tel:+919482831381">Contact Now</a>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal -->
+    <div id="roomModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeRoomModal()">&times;</span>
+        <div class="modal-slider">
+          <button class="arrow left" onclick="changeImage(-1)">&#10094;</button>
+          <img id="modalImage" src="" alt="Room Image" />
+          <button class="arrow right" onclick="changeImage(1)">&#10095;</button>
+        </div>
+        <div class="modal-amenities">
+          <h3>Amenities</h3>
+          <ul id="amenitiesList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Amenities Section -->
+    <section id="amenities" class="amenities">
+      <h2>Amenities</h2>
+      <div class="amenities-list">
+        <div class="amenity-item">
+          <img src="icons/wifi.svg" alt="WiFi Icon" class="amenity-icon" />
+          <span>Free WiFi</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/parking.svg"
+            alt="Parking Icon"
+            class="amenity-icon"
+          />
+          <span>Free Parking</span>
+        </div>
+
+        <div class="amenity-item">
+          <img
+            src="icons/CommonArea.svg"
+            alt="Room Service Icon"
+            class="amenity-icon"
+          />
+          <span>Common Area</span>
+        </div>
+
+        <div class="amenity-item">
+          <img
+            src="icons/reception.svg"
+            alt="Room Service Icon"
+            class="amenity-icon"
+          />
+          <span>24/7 Reception</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/Cctv.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>CCTV</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/PowerBackup.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>Power Backup</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/Water-dispenser.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>Water Dispenser</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/Pet-friendly.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>Pet Friendly</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/Laundry.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>Laundry Service</span>
+        </div>
+
+        <div class="amenity-item">
+          <i class="fa-regular fa-circle-parking"></i>
+          <img
+            src="icons/Housekeeping.svg"
+            alt="housekeeping icon"
+            class="amenity-icon"
+          />
+          <span>House Keeping</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Location Section -->
+    <section id="location" class="location-section">
+      <h2>Our Location</h2>
+      <div class="location-content">
+        <!-- Google Map Embed -->
+        <div class="map-container">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3650.490516777112!2d75.80639651519604!3d14.513619789829144!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bba29578bb58cbd%3A0xdb51c13a9cee9efb!2sCibara%20Comforts%20%7C%7C%20Hotel%20%7C%7C%20Lodge%20Harihar!5e0!3m2!1sen!2sin!4v1699047106423!5m2!1sen!2sin"
+            width="100%"
+            height="100%"
+            style="border: 0"
+            allowfullscreen=""
+            loading="lazy"
+          >
+          </iframe>
+        </div>
+
+        <!-- Proximity Info -->
+        <div class="proximity-info">
+          <h3>Proximity Highlights</h3>
+          <div class="info-box">
+            <h4>Airport</h4>
+            <p>Shimoga Airport-87 km away</p>
+          </div>
+          <div class="info-box">
+            <h4>Railway Station</h4>
+            <p>800 m away</p>
+          </div>
+          <div class="info-box">
+            <h4>Bus Stand</h4>
+            <p>750 m away</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+      <h2>Contact Us</h2>
+      <p>We are here to assist you. Reach out to us anytime!</p>
+      <p>
+        <strong>Phone:</strong> <a href="tel:+919482831381">+91 9482831381</a>
+        <strong>Tel:</strong> <a href="tel:08192297384">08192-297384</a>
+      </p>
+      <p><strong>Email:</strong> cibaracomforts@gmail.com</p>
+    </section>
+
+    <!-- Floating Contact Button -->
+    <a href="tel:+919482831381" class="contact-float-btn" title="Call us now!">
+      📞 Contact Us
+    </a>
+
+    <!-- Testimonial Section -->
+    <section id="reviews" class="testimonial-section">
+      <h2 class="section-title">Reviews</h2>
+      <div class="testimonial-slider">
+        <div class="testimonial active">
+          <p>
+            "The stay was absolutely delightful! The rooms were clean and the
+            staff was friendly. Highly recommend Cibara Comforts!"
+          </p>
+          <div class="stars">★★★★★</div>
+          <h4>– Neeraj Ladwa</h4>
+        </div>
+        <div class="testimonial">
+          <p>
+            "Near to the KSRTC in gate Prices are affordable They maintain rooms
+            very clean And room service also available Receiving the customers
+            very polite Finally my suggestion is take room in cibara."
+          </p>
+          <div class="stars">★★★★☆</div>
+          <h4>– Vangala Bhuvan sai</h4>
+        </div>
+        <div class="testimonial">
+          <p>
+            "Affordable and Well maintaned Hotel in harihar. Stayed with my
+            family for a day, Staff and the owner were very friendly. Services
+            are par above expetations."
+          </p>
+          <div class="stars">★★★★★</div>
+          <h4>– Zeeshan Sk</h4>
+        </div>
+        <div class="testimonial">
+          <p>
+            "Well maintained rooms, staff's are behave friendly and wifi also
+            available in this lodge."
+          </p>
+          <div class="stars">★★★★★</div>
+          <h4>– Shashidar. K</h4>
+        </div>
+        <div class="testimonial">
+          <p>
+            "Good rooms and best lodge in harihar city with free wifi and hot
+            water ....budget friendly."
+          </p>
+          <div class="stars">★★★★★</div>
+          <h4>– Farha Naaz</h4>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer>
+      <p>&copy; 2024 Cibara Comforts. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
