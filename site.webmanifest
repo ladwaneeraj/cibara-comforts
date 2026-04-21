@@ -1,0 +1,45 @@
+{
+  "name": "Cibara Comforts — Hotel & Lodge in Harihar",
+  "short_name": "Cibara Comforts",
+  "description": "Budget-friendly hotel and lodge in Harihar, Karnataka. Clean rooms, free Wi-Fi, 24/7 reception. Rooms from ₹250/night.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0f2b6c",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["travel", "hotel", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/reception.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/hero1.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book a room",
+      "url": "/#booking",
+      "description": "Jump straight to the booking form"
+    },
+    {
+      "name": "WhatsApp us",
+      "url": "https://wa.me/916361800647",
+      "description": "Chat with our team"
+    },
+    {
+      "name": "Call hotel",
+      "url": "tel:+916361800647",
+      "description": "Call reception 24/7"
+    }
+  ]
+}

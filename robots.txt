@@ -1,0 +1,44 @@
+# robots.txt for https://cibaracomforts.com
+# Crawl-friendly: allow all major search engines and AI crawlers
+
+User-agent: *
+Allow: /
+Disallow: /.git/
+Disallow: /node_modules/
+Disallow: /private/
+Disallow: /admin/
+
+# Major AI / answer-engine crawlers (explicitly allowed so ChatGPT,
+# Perplexity, Claude, Gemini, Bing Chat etc. can index & cite this site).
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://cibaracomforts.com/sitemap.xml
+Host: https://cibaracomforts.com
+
+# LLM-friendly summary for ChatGPT, Claude, Perplexity, Gemini, etc.
+# https://cibaracomforts.com/llms.txt

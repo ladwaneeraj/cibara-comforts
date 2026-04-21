@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://cibaracomforts.com/</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.00</priority>
+    <xhtml:link rel="alternate" hreflang="en-in" href="https://cibaracomforts.com/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cibaracomforts.com/" />
+    <image:image>
+      <image:loc>https://cibaracomforts.com/images/hero1.jpg</image:loc>
+      <image:title>Cibara Comforts Hotel Harihar — Hero Image</image:title>
+      <image:caption>Best budget hotel and lodge in Harihar, Karnataka.</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://cibaracomforts.com/images/hero2.jpg</image:loc>
+      <image:title>Cibara Comforts — Rooms</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://cibaracomforts.com/rooms/premium1.jpeg</image:loc>
+      <image:title>Premium Room at Cibara Comforts</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://cibaracomforts.com/rooms/double1.jpeg</image:loc>
+      <image:title>Double Room at Cibara Comforts</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://cibaracomforts.com/rooms/single1.jpg</image:loc>
+      <image:title>Single Room at Cibara Comforts</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://cibaracomforts.com/rooms/dorm1.jpg</image:loc>
+      <image:title>Dormitory at Cibara Comforts</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#rooms</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#booking</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#amenities</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#location</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#faq</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#reviews</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://cibaracomforts.com/#contact</loc>
+    <lastmod>2026-04-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.60</priority>
+  </url>
+
+</urlset>
