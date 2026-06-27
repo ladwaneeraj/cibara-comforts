@@ -7,7 +7,22 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0f2b6c" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("cc-theme");
+          if (t !== "dark" && t !== "light") {
+            t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          if (t === "dark") {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute("content", "#0a0f1e");
+          }
+        } catch (e) { document.documentElement.setAttribute("data-theme", "light"); }
+      })();
+    </script>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="format-detection" content="telephone=no" />
 
@@ -97,7 +112,15 @@
     <link
       rel="preload"
       as="image"
+      href="images/hero1-mobile.jpg"
+      media="(max-width: 768px)"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="image"
       href="images/hero1.jpg"
+      media="(min-width: 769px)"
       fetchpriority="high"
     />
 
@@ -770,6 +793,15 @@
       .booking-trust span { display: inline-flex; align-items: center; gap: 6px; }
       .booking-trust i { color: var(--success); }
 
+      .booking-policy {
+        display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: center;
+        margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line);
+        color: var(--muted); font-size: 0.9rem;
+      }
+      .booking-policy span { display: inline-flex; align-items: center; gap: 8px; }
+      .booking-policy i { color: var(--primary); }
+      .booking-policy strong { color: var(--ink-2); font-weight: 600; }
+
       /* Amenities */
       .amenities { background: var(--bg); }
       .amenities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 18px; max-width: var(--container); margin: 0 auto; }
@@ -828,9 +860,13 @@
       }
       .faq-question i { color: var(--primary); transition: transform var(--t); }
       .faq-item.open .faq-question i { transform: rotate(180deg); }
-      .faq-answer { padding: 0 22px; max-height: 0; overflow: hidden; transition: max-height 340ms var(--ease), padding 340ms var(--ease); }
+      .faq-answer {
+        display: grid; grid-template-rows: 0fr; padding: 0 22px;
+        transition: grid-template-rows 340ms var(--ease), padding 340ms var(--ease);
+      }
+      .faq-answer > * { overflow: hidden; min-height: 0; }
       .faq-answer p { color: var(--ink-2); line-height: 1.7; font-size: 0.97rem; }
-      .faq-item.open .faq-answer { padding: 0 22px 22px; max-height: 500px; }
+      .faq-item.open .faq-answer { grid-template-rows: 1fr; padding: 0 22px 22px; }
 
       /* Contact */
       .contact { background: var(--bg); }
@@ -910,7 +946,39 @@
         *, *::before, *::after { animation: none !important; transition: none !important; }
       }
 
-      /* Responsive */
+      /* ============ Universal mobile UX (apply at all sizes) ============ */
+      /* Remove the iOS/Android grey tap flash */
+      a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+      /* Anchor scroll offset so sticky header never hides target headings */
+      section[id], .faq-item, .room { scroll-margin-top: 88px; }
+      /* iOS will auto-zoom the page when focusing a form field whose font-size < 16px.
+         Force 16px here while keeping desktop visual size via line-height. */
+      .form-group input,
+      .form-group select,
+      .form-group textarea,
+      .date-picker-input,
+      .date-picker-input * { font-size: 16px; }
+      /* Floating action buttons respect iOS home-indicator safe area */
+      .fab-stack {
+        right: max(20px, env(safe-area-inset-right));
+        bottom: max(22px, calc(env(safe-area-inset-bottom) + 16px));
+      }
+      /* Backdrop-filter fallback for mid-range Android / older browsers */
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        header.site { background: rgba(255, 255, 255, 0.97); }
+      }
+      /* Use dynamic viewport units where supported — fixes iOS Safari URL-bar jump */
+      @supports (height: 100dvh) {
+        .hero { min-height: 92dvh; }
+      }
+      /* Active nav state for keyboard + screen-reader users */
+      nav.primary a[aria-current="page"] {
+        color: var(--primary); background: var(--primary-50); font-weight: 600;
+      }
+      /* Stop scroll chaining out of modal/calendar popups */
+      .modal-content, .date-picker-popup { overscroll-behavior: contain; }
+
+      /* ============ Responsive (descending desktop-first cascade) ============ */
       @media (max-width: 1024px) {
         .location-grid { grid-template-columns: 1fr; }
         .foot-grid { grid-template-columns: 1.4fr 1fr 1fr; }
@@ -923,6 +991,7 @@
           background: #fff; box-shadow: var(--shadow-lg);
           padding: 84px 20px 30px; transform: translateX(105%); transition: transform 300ms var(--ease);
           border-left: 1px solid var(--line);
+          overflow-y: auto;
         }
         nav.primary ul.active { transform: translateX(0); }
         nav.primary a { width: 100%; padding: 14px 16px; font-size: 1.05rem; border-radius: 12px; }
@@ -935,17 +1004,293 @@
         .date-display { flex-direction: column; align-items: flex-start; gap: 10px; }
         .date-separator { display: none; }
       }
+      @supports (height: 100dvh) {
+        @media (max-width: 820px) { .hero { min-height: 86dvh; } }
+      }
+      /* Tablet + large phone — fills the gap between 520 and 820 */
+      @media (max-width: 768px) {
+        section { padding: clamp(56px, 11vw, 90px) 0; }
+        .section-head { margin-bottom: 36px; }
+        .section-head h2 { font-size: clamp(1.7rem, 6vw, 2.2rem); }
+        .section-head p { font-size: 0.97rem; }
+        .container { padding-inline: 16px; }
+        .booking-wrap { padding: 22px 18px; border-radius: var(--radius); }
+        /* All auto-fit grids: drop horizontal/vertical gap when stacked */
+        .why-grid, .offers-grid, .reviews-grid, .contact-grid { gap: 16px; }
+        .rooms-grid { gap: 20px; }
+        .why-card { padding: 24px; }
+        .offer { padding: 22px; }
+        .review { padding: 22px; }
+        .contact-card { padding: 24px 18px; }
+        .why-card h3, .offer h3, .contact-card h4 { font-size: 1.12rem; }
+        .why-card p, .review p, .offer p { font-size: 0.94rem; }
+        .map, .map iframe { min-height: 320px; }
+        .trust-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+        .trust-item .num { font-size: 1.55rem; }
+        .amenities-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .amenity { padding: 20px 12px; }
+        .amenity i { font-size: 1.55rem; margin-bottom: 8px; }
+        .amenity span { font-size: 0.86rem; }
+        .hero-signals { gap: 12px 22px; font-size: 0.88rem; }
+        .announce { font-size: 0.82rem; padding: 9px 14px; line-height: 1.45; }
+        .final-cta { padding: clamp(48px,9vw,80px) 16px; }
+        .final-cta p { font-size: 0.97rem; }
+        .modal-details { padding: 22px; }
+        .faq-question { padding: 18px 18px; font-size: 0.98rem; }
+        .faq-item.open .faq-answer, .faq-answer { padding-inline: 18px; }
+        .faq-item.open .faq-answer { padding-bottom: 18px; }
+        .booking-policy { gap: 8px 18px; font-size: 0.85rem; padding-top: 14px; margin-top: 14px; }
+        .foot-grid { gap: 24px; }
+        .prox { padding: 14px 16px; gap: 12px; }
+        .prox .ic { width: 40px; height: 40px; font-size: 1rem; }
+      }
       @media (max-width: 520px) {
         .rooms-grid { grid-template-columns: 1fr; }
         .pricing-grid { grid-template-columns: 1fr 1fr; }
-        .fab { width: 52px; height: 52px; }
-        .foot-grid { grid-template-columns: 1fr; }
+        .fab { width: 52px; height: 52px; font-size: 1.15rem; }
+        .foot-grid { grid-template-columns: 1fr; gap: 20px; }
+        .section-head { margin-bottom: 30px; }
+        .hero h1 { line-height: 1.12; }
+        .hero p.lede { font-size: 1rem; }
+        .booking-wrap > p.sub { font-size: 0.92rem; }
+        .date-range-container, .guest-info, .booking-summary { padding: 16px; }
+        .calendar-day { font-size: 0.82rem; }
+        .calendar-day-header { font-size: 0.7rem; padding: 6px 2px; }
+        .btn { padding: 13px 18px; font-size: 0.95rem; }
+        .hero-cta { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; max-width: 320px; margin-inline: auto; }
+        .hero-cta .btn { width: 100%; }
+        .hero-signals { gap: 10px 18px; font-size: 0.84rem; }
+        .review-cta { flex-direction: column; }
+        .review-cta .btn { width: 100%; }
+        .foot-bot { flex-direction: column; align-items: flex-start; gap: 14px; }
+        .partners-grid { gap: 10px; }
+        .partner-pill { padding: 10px 14px; font-size: 0.9rem; }
+        /* Tighter cards on phones */
+        .why-grid, .offers-grid, .reviews-grid, .contact-grid { gap: 14px; }
+        /* Why Us: 2-up grid so 6 cards take 3 rows instead of 6 — halves section height */
+        .why-grid { grid-template-columns: 1fr 1fr; }
+        .why-card { padding: 18px 14px; }
+        .why-card .ic { width: 40px; height: 40px; font-size: 1rem; margin-bottom: 10px; border-radius: 11px; }
+        .why-card h3 { font-size: 0.98rem; line-height: 1.3; margin-bottom: 6px; }
+        .why-card p { font-size: 0.86rem; line-height: 1.45; }
+        .offer { padding: 22px 20px; }
+        .offer .pct { font-size: 2rem; }
+        .review { padding: 22px 20px; gap: 10px; }
+        .contact-card { padding: 24px 18px; }
+        .contact-card .ic { width: 48px; height: 48px; font-size: 1.2rem; margin-bottom: 12px; border-radius: 12px; }
+        .modal-pricing, .modal-amenities ul { gap: 8px; }
+        .prox { padding: 14px; }
+        .booking-policy { flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 12px; margin-top: 12px; }
+      }
+      /* Very small phones — iPhone SE 1st gen / Galaxy S9 in portrait */
+      @media (max-width: 380px) {
+        .container { padding-inline: 14px; }
+        section { padding: clamp(44px, 10vw, 72px) 0; }
+        .booking-wrap { padding: 18px 14px; }
+        .date-range-container, .guest-info, .booking-summary, .ac-option { padding: 14px; }
+        .pricing-grid { grid-template-columns: 1fr; }
+        .modal-details { padding: 18px; }
+        .hero { padding: 80px 14px 50px; }
+        .hero h1 { font-size: clamp(1.85rem, 8vw, 2.2rem); }
+        .hero p.lede { font-size: 0.95rem; }
+        .hero-signals { gap: 8px 14px; font-size: 0.8rem; }
+        .room-body { padding: 18px 18px 20px; }
+        .room-body h3 { font-size: 1.2rem; }
+        .price { font-size: 1.35rem; }
+        .fab { width: 48px; height: 48px; }
+        .fab-stack {
+          right: max(14px, env(safe-area-inset-right));
+          bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
+          gap: 10px;
+        }
+        .nav-cta { font-size: 0.9rem; }
+        .trust-item .num { font-size: 1.4rem; }
+        .trust-item { gap: 10px; }
+        .trust-item .lbl { font-size: 0.78rem; }
+        .calendar-day { font-size: 0.78rem; }
+        .announce { font-size: 0.78rem; padding: 8px 12px; }
+        /* Even denser cards on tiny screens */
+        .why-grid, .offers-grid, .reviews-grid, .contact-grid { gap: 10px; }
+        .offer, .review, .contact-card { padding: 18px 16px; }
+        .why-card { padding: 16px 12px; }
+        .why-card .ic { width: 38px; height: 38px; font-size: 0.95rem; margin-bottom: 9px; }
+        .offer h3, .contact-card h4, .review p { font-size: 0.95rem; }
+        .why-card h3 { font-size: 0.92rem; }
+        .why-card p { font-size: 0.82rem; }
+        .amenities-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .amenity { padding: 16px 10px; }
+        .amenity i { font-size: 1.4rem; }
+        .amenity span { font-size: 0.8rem; }
+        .section-head { margin-bottom: 24px; }
+        .section-head h2 { font-size: clamp(1.45rem, 7vw, 1.8rem); }
+        .section-head p { font-size: 0.9rem; }
+        .prox { padding: 12px; gap: 10px; }
+        .prox h4 { font-size: 0.92rem; }
+        .prox p { font-size: 0.85rem; }
+        .map, .map iframe { min-height: 260px; }
+      }
+
+      /* ============ 3D • Theme • Feature layer ============ */
+      :root { --surface: #ffffff; }
+      html { color-scheme: light; }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+        --primary: #5b7cfa;
+        --primary-600: #6e8cf5;
+        --primary-500: #9db1ff;
+        --primary-50: rgba(122, 149, 245, 0.12);
+        --ink: #e9edf7;
+        --ink-2: #c6cedf;
+        --muted: #939db2;
+        --line: #222c44;
+        --bg: #0a0f1e;
+        --bg-2: #0e1527;
+        --bg-3: #121a30;
+        --surface: #131c33;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+        --shadow-lg: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+      }
+
+      /* Dark-mode surfaces (components with hardcoded light backgrounds) */
+      html[data-theme="dark"] header.site { background: rgba(10, 15, 30, 0.8); border-bottom-color: rgba(255, 255, 255, 0.06); }
+      html[data-theme="dark"] header.site.scrolled { background: rgba(10, 15, 30, 0.95); }
+      html[data-theme="dark"] .hamburger,
+      html[data-theme="dark"] .room,
+      html[data-theme="dark"] .booking-wrap,
+      html[data-theme="dark"] .prox,
+      html[data-theme="dark"] .faq-item,
+      html[data-theme="dark"] .date-picker-input,
+      html[data-theme="dark"] .date-picker-popup,
+      html[data-theme="dark"] .form-group input,
+      html[data-theme="dark"] .form-group select,
+      html[data-theme="dark"] .form-group textarea,
+      html[data-theme="dark"] .pricing-option,
+      html[data-theme="dark"] .modal-content { background: var(--surface); }
+      html[data-theme="dark"] .room-badge.muted { background: #0b1220; }
+      html[data-theme="dark"] footer { background: #070c18; }
+      html[data-theme="dark"] .ac-option { background: rgba(122, 149, 245, 0.08); }
+      html[data-theme="dark"] .calendar-day.in-range { background: rgba(122, 149, 245, 0.16); color: var(--primary-500); }
+      html[data-theme="dark"] .arrow:hover,
+      html[data-theme="dark"] .foot-bot .socials a:hover { color: #211700; }
+      html[data-theme="dark"] .offer { background: rgba(255, 255, 255, 0.06); }
+      @media (max-width: 820px) {
+        html[data-theme="dark"] nav.primary ul { background: var(--surface); }
+      }
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        html[data-theme="dark"] header.site { background: rgba(10, 15, 30, 0.97); }
+      }
+
+      /* Theme toggle */
+      .theme-toggle {
+        width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px;
+        background: var(--surface); color: var(--ink); display: grid; place-items: center;
+        font-size: 0.95rem; flex-shrink: 0;
+        transition: transform var(--t), color var(--t), background var(--t), border-color var(--t);
+      }
+      .theme-toggle:hover { color: var(--primary); transform: rotate(15deg); }
+
+      /* 3D hero: perspective + parallax layers + ambient orbs */
+      .hero { perspective: 1100px; }
+      .hero-inner { transform-style: preserve-3d; will-change: transform; }
+      .orb { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1; will-change: transform; }
+      .orb-a { width: 46vmin; height: 46vmin; top: 8%; left: -10vmin; background: radial-gradient(circle, rgba(255, 193, 54, 0.32), transparent 68%); animation: drift 16s ease-in-out infinite; }
+      .orb-b { width: 54vmin; height: 54vmin; bottom: -12vmin; right: -8vmin; background: radial-gradient(circle, rgba(91, 124, 250, 0.38), transparent 68%); animation: drift 19s ease-in-out infinite reverse; }
+      @keyframes drift { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(4vmin, -3vmin, 0) scale(1.08); } }
+
+      /* 3D tilt cards (desktop pointer only; class added by JS) */
+      .tilt { position: relative; }
+      @media (hover: hover) and (pointer: fine) {
+        .tilt {
+          transform-style: preserve-3d; will-change: transform;
+          transition: transform 200ms ease-out, opacity 0.7s var(--ease), box-shadow var(--t), border-color var(--t), background var(--t);
+        }
+        .tilt > .tilt-glare {
+          position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5;
+          background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.16), transparent 55%);
+          opacity: 0; transition: opacity 0.35s ease;
+        }
+        .tilt:hover > .tilt-glare { opacity: 1; }
+      }
+
+      /* 3D micro-interactions */
+      .btn:active, .book-btn:active, .book-button:active, .fab:active, .theme-toggle:active { transform: translateY(1px) scale(0.98); }
+      .amenity { perspective: 600px; }
+      .amenity i { transition: transform 0.6s var(--ease), color var(--t); }
+      .amenity:hover i { transform: rotateY(360deg) translateZ(12px); }
+
+      /* Scroll progress bar */
+      .scroll-progress {
+        position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 3000;
+        background: var(--grad-warm); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none;
+      }
+
+      /* Back to top */
+      .fab.top {
+        background: var(--ink); color: var(--bg); border: none;
+        opacity: 0; visibility: hidden; transform: translateY(8px);
+        transition: opacity var(--t), visibility var(--t), transform var(--t);
+      }
+      .fab.top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+
+      /* Lightbox photo viewer */
+      .lightbox {
+        position: fixed; inset: 0; z-index: 4000; background: rgba(4, 7, 15, 0.96);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.3s ease;
+      }
+      .lightbox[hidden] { display: none; }
+      .lightbox.show { opacity: 1; }
+      .lightbox img { max-width: 94vw; max-height: 86vh; width: auto; object-fit: contain; border-radius: 10px; box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8); }
+      .lb-btn {
+        position: absolute; width: 48px; height: 48px; border-radius: 50%; border: none;
+        background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 20px;
+        display: grid; place-items: center; cursor: pointer; transition: background var(--t), color var(--t);
+      }
+      .lb-btn:hover { background: var(--accent); color: #211700; }
+      .lb-close { top: 18px; right: 18px; }
+      .lb-prev { left: 14px; top: 50%; transform: translateY(-50%); }
+      .lb-next { right: 14px; top: 50%; transform: translateY(-50%); }
+      .lb-count { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; letter-spacing: 0.06em; }
+      #modalImage { cursor: zoom-in; }
+
+      .theme-toggle:focus-visible, .lb-btn:focus-visible, .fab.top:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      /* ============ Mobile performance & UX ============ */
+      @media (max-width: 768px) {
+        /* Smaller hero variant for the eagerly-loaded first slide */
+        .hero-bg .slide:first-child { background-image: url("images/hero1-mobile.jpg") !important; }
+        /* Skip ambient orb animation cost on phones */
+        .orb { display: none; }
+      }
+
+      /* Sticky mobile booking bar */
+      .book-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 950;
+        display: none; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 10px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+        background: var(--surface); border-top: 1px solid var(--line);
+        box-shadow: 0 -8px 24px rgba(11, 18, 32, 0.12);
+        transform: translateY(110%); transition: transform var(--t);
+      }
+      .book-bar.show { transform: translateY(0); }
+      .book-bar .bb-price { line-height: 1.25; }
+      .book-bar .bb-price strong { font-family: "Playfair Display", serif; font-size: 1.15rem; color: var(--ink); }
+      .book-bar .bb-price small { display: block; color: var(--muted); font-size: 0.72rem; }
+      .book-bar .bb-actions { display: flex; gap: 8px; }
+      .book-bar .btn { padding: 11px 16px; font-size: 0.9rem; }
+      @media (max-width: 820px) {
+        .book-bar { display: flex; }
+        .fab-stack {
+          bottom: max(86px, calc(env(safe-area-inset-bottom) + 78px));
+        }
       }
     </style>
   </head>
 
   <body>
     <a href="#main" class="skip">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
     <!-- Announcement bar -->
     <div class="announce" role="region" aria-label="Special offer">
@@ -976,6 +1321,9 @@
             <li><a href="#booking" class="nav-cta"><i class="fas fa-calendar-check" aria-hidden="true"></i> Book Now</a></li>
           </ul>
         </nav>
+        <button class="theme-toggle" id="themeToggle" aria-label="Switch to dark theme" title="Toggle light / dark theme">
+          <i class="fas fa-moon" aria-hidden="true"></i>
+        </button>
         <button class="hamburger" id="hamburger" aria-label="Open menu" aria-controls="navList" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -987,11 +1335,13 @@
       <section id="home" class="hero" aria-label="Welcome">
         <div class="hero-bg" aria-hidden="true">
           <div class="slide active" style="background-image: url('images/hero1.jpg');"></div>
-          <div class="slide" style="background-image: url('images/hero2.jpg');"></div>
-          <div class="slide" style="background-image: url('images/hero3.jpg');"></div>
-          <div class="slide" style="background-image: url('images/hero4.jpg');"></div>
-          <div class="slide" style="background-image: url('images/hero5.jpg');"></div>
+          <div class="slide" data-bg="images/hero2.jpg" data-bg-mobile="images/hero2-mobile.jpg"></div>
+          <div class="slide" data-bg="images/hero3.jpg" data-bg-mobile="images/hero3-mobile.jpg"></div>
+          <div class="slide" data-bg="images/hero4.jpg" data-bg-mobile="images/hero4-mobile.jpg"></div>
+          <div class="slide" data-bg="images/hero5.jpg" data-bg-mobile="images/hero5-mobile.jpg"></div>
         </div>
+        <div class="orb orb-a" aria-hidden="true"></div>
+        <div class="orb orb-b" aria-hidden="true"></div>
         <div class="hero-inner">
           <span class="pill"><i class="fas fa-star"></i> 4.6 / 5 · 312+ verified guest reviews</span>
           <h1>Stay comfortable in <span class="hi">Harihar</span><br />at prices that feel like home.</h1>
@@ -1290,6 +1640,11 @@
           <span class="eyebrow"><i class="fas fa-calendar-check"></i> Reservation</span>
           <h2>Book your stay in under a minute</h2>
           <p>Fill in the details below — we'll confirm on WhatsApp within 30 minutes. No upfront payment required.</p>
+          <div class="booking-policy" aria-label="Booking policy summary">
+            <span><i class="fas fa-clock" aria-hidden="true"></i> Check-in <strong>12:00 PM</strong> &middot; Check-out <strong>11:00 AM</strong></span>
+            <span><i class="fas fa-ban" aria-hidden="true"></i> Free cancellation until <strong>6 PM on arrival day</strong></span>
+            <span><i class="fas fa-indian-rupee-sign" aria-hidden="true"></i> Pay at the hotel &middot; UPI, card or cash accepted</span>
+          </div>
         </div>
         <div class="container">
           <div class="booking-wrap reveal">
@@ -1805,7 +2160,10 @@
         </div>
       </div>
       <div class="foot-bot">
-        <div>© <span id="year">2026</span> Cibara Comforts. All rights reserved.</div>
+        <div>
+          © <span id="year">2026</span> Cibara Comforts. All rights reserved.<br />
+          <small style="opacity:0.75;">Tax invoice (GST) available at check-out on request. Rates inclusive of taxes unless noted.</small>
+        </div>
         <div class="socials">
           <a href="https://www.instagram.com/cibara_comforts/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
           <a href="https://www.google.com/maps?cid=15803625024904929019" target="_blank" rel="noopener" aria-label="Google Maps"><i class="fab fa-google"></i></a>
@@ -1816,6 +2174,21 @@
       </div>
     </footer>
 
+    <!-- Sticky mobile booking bar -->
+    <div class="book-bar" id="bookBar">
+      <div class="bb-price">
+        <strong>₹250+</strong>
+        <small>per night · pay at hotel</small>
+      </div>
+      <div class="bb-actions">
+        <a href="https://wa.me/916361800647?text=Hi%20Cibara%20Comforts%2C%20I%27d%20like%20to%20book%20a%20room."
+           class="btn btn-whats" rel="noopener" aria-label="Book on WhatsApp">
+          <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp
+        </a>
+        <a href="#booking" class="btn btn-primary">Book now</a>
+      </div>
+    </div>
+
     <!-- Floating action buttons -->
     <div class="fab-stack" aria-label="Quick contact">
       <a href="https://wa.me/916361800647?text=Hi%20Cibara%20Comforts%2C%20I%27d%20like%20to%20book%20a%20room."
@@ -1825,6 +2198,18 @@
       <a href="tel:+916361800647" class="fab call" aria-label="Call Cibara Comforts" title="Call us">
         <i class="fas fa-phone" aria-hidden="true"></i>
       </a>
+      <button class="fab top" id="backToTop" aria-label="Back to top" title="Back to top">
+        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Lightbox photo viewer -->
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+      <button class="lb-btn lb-close" aria-label="Close photo viewer">&times;</button>
+      <button class="lb-btn lb-prev" aria-label="Previous photo">&#10094;</button>
+      <img id="lightboxImg" src="" alt="Room photo enlarged" />
+      <button class="lb-btn lb-next" aria-label="Next photo">&#10095;</button>
+      <div class="lb-count" id="lightboxCount" aria-hidden="true"></div>
     </div>
 
     <script>
@@ -1966,7 +2351,9 @@
         const el = document.getElementById("booking");
         el.scrollIntoView({ behavior: "smooth", block: "start" });
         el.style.transition = "background 0.6s";
-        el.style.background = "linear-gradient(135deg, #fff8e1 0%, #fff 60%)";
+        el.style.background = document.documentElement.getAttribute("data-theme") === "dark"
+          ? "linear-gradient(135deg, rgba(255,193,54,0.10) 0%, transparent 60%)"
+          : "linear-gradient(135deg, #fff8e1 0%, #fff 60%)";
         setTimeout(() => { el.style.background = ""; }, 1600);
       }
       window.bookRoom = bookRoom;
@@ -2068,6 +2455,7 @@
         if (imgs.length <= 1) return;
         let i = 0;
         setInterval(() => {
+          if (document.hidden) return;
           imgs[i].classList.remove("active");
           i = (i + 1) % imgs.length;
           imgs[i].classList.add("active");
@@ -2149,12 +2537,22 @@
         });
       });
 
-      // ============ Hero carousel ============
+      // ============ Hero carousel (lazy slide hydration) ============
       (function heroCarousel() {
         const slides = document.querySelectorAll(".hero-bg .slide");
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        function hydrate() {
+          slides.forEach((s) => {
+            const src = isMobile ? (s.dataset.bgMobile || s.dataset.bg) : s.dataset.bg;
+            if (src && !s.style.backgroundImage) s.style.backgroundImage = "url('" + src + "')";
+          });
+        }
+        if (document.readyState === "complete") hydrate();
+        else window.addEventListener("load", () => setTimeout(hydrate, 250), { once: true });
         if (slides.length < 2) return;
         let i = 0;
         setInterval(() => {
+          if (document.hidden) return;
           slides[i].classList.remove("active");
           i = (i + 1) % slides.length;
           slides[i].classList.add("active");
@@ -2204,14 +2602,264 @@
       if (io) { document.querySelectorAll(".reveal").forEach(el => io.observe(el)); }
       else { document.querySelectorAll(".reveal").forEach(el => el.classList.add("visible")); }
 
+      // ============ Active nav (aria-current) sync ============
+      (function activeNav() {
+        if (!("IntersectionObserver" in window)) return;
+        const navLinks = document.querySelectorAll('nav.primary a[href^="#"]');
+        if (!navLinks.length) return;
+        const linkBySection = new Map();
+        navLinks.forEach(a => {
+          const id = a.getAttribute("href").slice(1);
+          if (id) linkBySection.set(id, a);
+        });
+        const sections = Array.from(linkBySection.keys())
+          .map(id => document.getElementById(id))
+          .filter(Boolean);
+        if (!sections.length) return;
+        const setActive = (id) => {
+          navLinks.forEach(a => a.removeAttribute("aria-current"));
+          const a = linkBySection.get(id);
+          if (a) a.setAttribute("aria-current", "page");
+        };
+        const navIo = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter(e => e.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (visible) setActive(visible.target.id);
+        }, { threshold: [0.25, 0.5, 0.75], rootMargin: "-80px 0px -50% 0px" });
+        sections.forEach(s => navIo.observe(s));
+      })();
+
       // ============ Year in footer ============
       const yearEl = document.getElementById("year");
       if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      // ============ Theme toggle ============
+      (function themeToggle() {
+        const root = document.documentElement;
+        const btn = document.getElementById("themeToggle");
+        if (!btn) return;
+        const icon = btn.querySelector("i");
+        const meta = document.querySelector('meta[name="theme-color"]');
+        function render(t) {
+          root.setAttribute("data-theme", t);
+          if (icon) icon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
+          btn.setAttribute("aria-label", t === "dark" ? "Switch to light theme" : "Switch to dark theme");
+          if (meta) meta.setAttribute("content", t === "dark" ? "#0a0f1e" : "#0f2b6c");
+        }
+        render(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+        btn.addEventListener("click", () => {
+          const t = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          render(t);
+          try { localStorage.setItem("cc-theme", t); } catch (_) {}
+        });
+      })();
+
+      // ============ Scroll progress + back-to-top ============
+      (function scrollFx() {
+        const bar = document.getElementById("scrollProgress");
+        const topBtn = document.getElementById("backToTop");
+        function onScroll() {
+          const h = document.documentElement;
+          const max = h.scrollHeight - h.clientHeight;
+          if (bar) bar.style.transform = "scaleX(" + (max > 0 ? Math.min(window.scrollY / max, 1) : 0) + ")";
+          if (topBtn) topBtn.classList.toggle("show", window.scrollY > 600);
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+        topBtn?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+      })();
+
+      // ============ 3D tilt cards (desktop, motion-safe) ============
+      (function tilt() {
+        const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        const noMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!fine || noMotion) return;
+        const MAX = 7;
+        document.querySelectorAll(".room, .why-card, .offer, .contact-card, .review").forEach((card) => {
+          card.classList.add("tilt");
+          const glare = document.createElement("span");
+          glare.className = "tilt-glare";
+          glare.setAttribute("aria-hidden", "true");
+          card.appendChild(glare);
+          let raf = 0;
+          card.addEventListener("pointermove", (e) => {
+            if (raf) return;
+            raf = requestAnimationFrame(() => {
+              raf = 0;
+              const r = card.getBoundingClientRect();
+              const px = (e.clientX - r.left) / r.width;
+              const py = (e.clientY - r.top) / r.height;
+              const rx = (0.5 - py) * MAX, ry = (px - 0.5) * MAX;
+              card.style.transform = "perspective(900px) rotateX(" + rx.toFixed(2) + "deg) rotateY(" + ry.toFixed(2) + "deg) translateY(-4px)";
+              card.style.setProperty("--gx", (px * 100).toFixed(1) + "%");
+              card.style.setProperty("--gy", (py * 100).toFixed(1) + "%");
+            });
+          });
+          card.addEventListener("pointerleave", () => {
+            if (raf) { cancelAnimationFrame(raf); raf = 0; }
+            card.style.transform = "";
+          });
+        });
+      })();
+
+      // ============ Hero 3D parallax (pointer + scroll, motion-safe) ============
+      (function heroParallax() {
+        const noMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (noMotion || !fine) return; // desktop-only: keeps mobile scroll cheap
+        const hero = document.querySelector(".hero");
+        const inner = document.querySelector(".hero-inner");
+        if (!hero || !inner) return;
+        const orbA = document.querySelector(".orb-a"), orbB = document.querySelector(".orb-b");
+        let mx = 0, my = 0, sy = 0, raf = 0;
+        function render() {
+          raf = 0;
+          inner.style.transform =
+            "translate3d(" + (mx * 14).toFixed(1) + "px," + (my * 10 + sy * 0.16).toFixed(1) + "px,0)" +
+            " rotateX(" + (-my * 1.4).toFixed(2) + "deg) rotateY(" + (mx * 1.8).toFixed(2) + "deg)";
+          if (orbA) orbA.style.translate = (mx * -28).toFixed(1) + "px " + (my * -18 + sy * 0.08).toFixed(1) + "px";
+          if (orbB) orbB.style.translate = (mx * 22).toFixed(1) + "px " + (my * 14 + sy * 0.05).toFixed(1) + "px";
+        }
+        if (fine) {
+          hero.addEventListener("pointermove", (e) => {
+            const r = hero.getBoundingClientRect();
+            mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+            my = ((e.clientY - r.top) / r.height - 0.5) * 2;
+            if (!raf) raf = requestAnimationFrame(render);
+          });
+          hero.addEventListener("pointerleave", () => { mx = my = 0; if (!raf) raf = requestAnimationFrame(render); });
+        }
+        window.addEventListener("scroll", () => {
+          const y = window.scrollY;
+          if (y <= window.innerHeight) { sy = y; if (!raf) raf = requestAnimationFrame(render); }
+        }, { passive: true });
+      })();
+
+      // ============ Animated trust-bar counters ============
+      (function counters() {
+        const noMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const nums = document.querySelectorAll(".trust-item .num");
+        if (!nums.length || !("IntersectionObserver" in window) || noMotion) return;
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach((en) => {
+            if (!en.isIntersecting) return;
+            obs.unobserve(en.target);
+            const node = en.target.firstChild;
+            if (!node || node.nodeType !== 3) return;
+            const m = node.nodeValue.match(/^([^\d]*)([\d,]+(?:\.\d+)?)(.*)$/);
+            if (!m) return;
+            const target = parseFloat(m[2].replace(/,/g, ""));
+            const dec = (m[2].split(".")[1] || "").length;
+            const t0 = performance.now(), dur = 1100;
+            (function step(t) {
+              const p = Math.min((t - t0) / dur, 1);
+              const eased = 1 - Math.pow(1 - p, 3);
+              node.nodeValue = m[1] + (target * eased).toLocaleString("en-IN", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + m[3];
+              if (p < 1) requestAnimationFrame(step);
+            })(t0);
+          });
+        }, { threshold: 0.5 });
+        nums.forEach((n) => obs.observe(n));
+      })();
+
+      // ============ Lightbox photo viewer ============
+      (function lightbox() {
+        const lb = document.getElementById("lightbox");
+        const img = document.getElementById("lightboxImg");
+        const count = document.getElementById("lightboxCount");
+        const modalImg = document.getElementById("modalImage");
+        if (!lb || !img || !modalImg) return;
+        let imgs = [], idx = 0, touchX = null;
+        function show(i) {
+          idx = (i + imgs.length) % imgs.length;
+          img.src = imgs[idx];
+          count.textContent = (idx + 1) + " / " + imgs.length;
+        }
+        function open(list, i, alt) {
+          imgs = list;
+          img.alt = alt || "Room photo";
+          lb.hidden = false;
+          requestAnimationFrame(() => lb.classList.add("show"));
+          document.body.style.overflow = "hidden";
+          show(i);
+        }
+        function close() {
+          lb.classList.remove("show");
+          setTimeout(() => {
+            lb.hidden = true;
+            document.body.style.overflow = document.querySelector(".modal.show") ? "hidden" : "";
+          }, 280);
+        }
+        modalImg.addEventListener("click", () => {
+          const room = roomData[currentRoomType];
+          if (room) open(room.images, currentImageIndex, modalImg.alt);
+        });
+        lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+        lb.querySelector(".lb-close").addEventListener("click", close);
+        lb.querySelector(".lb-prev").addEventListener("click", () => show(idx - 1));
+        lb.querySelector(".lb-next").addEventListener("click", () => show(idx + 1));
+        lb.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+        lb.addEventListener("touchend", (e) => {
+          if (touchX === null) return;
+          const dx = e.changedTouches[0].clientX - touchX;
+          touchX = null;
+          if (Math.abs(dx) > 45) show(idx + (dx < 0 ? 1 : -1));
+        }, { passive: true });
+        document.addEventListener("keydown", (e) => {
+          if (lb.hidden) return;
+          if (e.key === "Escape") { e.stopPropagation(); close(); }
+          else if (e.key === "ArrowLeft") { e.stopPropagation(); show(idx - 1); }
+          else if (e.key === "ArrowRight") { e.stopPropagation(); show(idx + 1); }
+        }, true);
+      })();
+
+      // ============ Sticky mobile booking bar ============
+      (function bookBar() {
+        const bar = document.getElementById("bookBar");
+        if (!bar || !("IntersectionObserver" in window)) return;
+        const hero = document.getElementById("home");
+        const booking = document.getElementById("booking");
+        let pastHero = false, bookingVisible = false;
+        const update = () => bar.classList.toggle("show", pastHero && !bookingVisible);
+        if (hero) new IntersectionObserver((e) => { pastHero = !e[0].isIntersecting; update(); }, { threshold: 0.05 }).observe(hero);
+        if (booking) new IntersectionObserver((e) => { bookingVisible = e[0].isIntersecting; update(); }, { threshold: 0.15 }).observe(booking);
+      })();
 
       // ============ Simple analytics hook (plug in GA4 here) ============
       // window.dataLayer = window.dataLayer || [];
       // function gtag(){ dataLayer.push(arguments); }
       // gtag('js', new Date()); gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
+    <!-- ============ Visit notification via ntfy.sh ============ -->
+    <!-- Pings ONLY the owner's phone (the device subscribed to the topic below). -->
+    <!-- Fire-and-forget: never blocks or breaks the page if ntfy is unreachable. -->
+    <script>
+      (function () {
+        // Your secret topic. Subscribe to THIS exact string in the ntfy app.
+        var NTFY_TOPIC = "cibara-comforts-YXkKWWEhj1";
+
+        try {
+          // Mute YOUR OWN visits: run  localStorage.setItem('ntfy_mute','1')  once in this browser.
+          if (localStorage.getItem("ntfy_mute")) return;
+          // Notify at most once per browser session (avoids a ping on every refresh).
+          if (sessionStorage.getItem("ntfy_pinged")) return;
+          sessionStorage.setItem("ntfy_pinged", "1");
+
+          var body =
+            "New visit\n" +
+            "Page: " + location.pathname + location.search + "\n" +
+            "From: " + (document.referrer || "direct / unknown") + "\n" +
+            "Time: " + new Date().toLocaleString();
+
+          fetch("https://ntfy.sh/" + NTFY_TOPIC, {
+            method: "POST",
+            body: body,
+            keepalive: true
+          }).catch(function () { /* ignore network errors */ });
+        } catch (e) { /* storage blocked, etc. — ignore */ }
+      })();
     </script>
   </body>
 </html>
