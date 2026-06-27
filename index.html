@@ -2847,18 +2847,71 @@
           if (sessionStorage.getItem("ntfy_pinged")) return;
           sessionStorage.setItem("ntfy_pinged", "1");
 
-          var body =
-            "New visit\n" +
-            "Page: " + location.pathname + location.search + "\n" +
-            "From: " + (document.referrer || "direct / unknown") + "\n" +
-            "Time: " + new Date().toLocaleString();
+          // New vs returning guest (remembered in this browser).
+          var visitor = localStorage.getItem("ntfy_seen") ? "Returning visitor" : "New visitor";
+          localStorage.setItem("ntfy_seen", "1");
 
-          fetch("https://ntfy.sh/" + NTFY_TOPIC, {
-            method: "POST",
-            body: body,
-            keepalive: true
-          }).catch(function () { /* ignore network errors */ });
-        } catch (e) { /* storage blocked, etc. — ignore */ }
+          var isMobile = (navigator.userAgentData && navigator.userAgentData.mobile) ||
+            /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+          var page = location.pathname === "/" ? "Home" : (location.pathname + location.search);
+
+          // Turn a raw referrer into a friendly "how they found you" label.
+          function source(ref) {
+            if (!ref) return "Direct or saved link";
+            var h;
+            try { h = new URL(ref).hostname.replace(/^www\./, ""); } catch (e) { return ref; }
+            if (h === location.hostname) return "Within your site";
+            if (h.indexOf("google.") === 0) return "Google";
+            if (h.indexOf("bing.") === 0) return "Bing";
+            if (h.indexOf("duckduckgo.") === 0) return "DuckDuckGo";
+            if (h.indexOf("instagram.") >= 0) return "Instagram";
+            if (h.indexOf("facebook.") >= 0 || h === "fb.com") return "Facebook";
+            if (h === "t.co" || h === "twitter.com" || h === "x.com") return "Twitter/X";
+            if (h.indexOf("whatsapp") >= 0 || h === "wa.me") return "WhatsApp";
+            if (h.indexOf("youtube.") >= 0 || h === "youtu.be") return "YouTube";
+            return h;
+          }
+
+          // Country flag emoji from a 2-letter country code (e.g. "IN").
+          function flag(cc) {
+            if (!cc || cc.length !== 2) return "";
+            return cc.toUpperCase().replace(/./g, function (c) {
+              return String.fromCodePoint(127397 + c.charCodeAt(0));
+            });
+          }
+
+          // Compose and send exactly one notification per visit.
+          var sent = false;
+          function send(locLine) {
+            if (sent) return;
+            sent = true;
+            var msg = [
+              visitor,
+              "Page: " + page,
+              "From: " + source(document.referrer),
+              locLine,
+              "Device: " + (isMobile ? "Mobile" : "Desktop"),
+              "Time: " + new Date().toLocaleString()
+            ].join("\n");
+            fetch("https://ntfy.sh/" + NTFY_TOPIC, {
+              method: "POST",
+              body: msg,
+              keepalive: true
+            }).catch(function () { /* ignore network errors */ });
+          }
+
+          // Best-effort approximate location from the visitor's IP (free service).
+          // Fail-safe: if it is slow, blocked, or rate-limited, send without it.
+          setTimeout(function () { send("Location: unknown"); }, 1800);
+          fetch("https://ipapi.co/json/")
+            .then(function (r) { return r.json(); })
+            .then(function (g) {
+              if (g && g.error) { send("Location: unknown"); return; }
+              var where = [g.city, g.region, g.country_name].filter(Boolean).join(", ");
+              send("Location: " + (where || "unknown") + (flag(g.country_code) ? " " + flag(g.country_code) : ""));
+            })
+            .catch(function () { send("Location: unknown"); });
+        } catch (e) { /* storage blocked, etc. - ignore */ }
       })();
     </script>
   </body>

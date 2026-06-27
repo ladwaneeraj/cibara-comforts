@@ -34,10 +34,18 @@ Visitors send the ping but receive nothing.
 ## How it behaves
 
 - **Once per browser session.** A visitor browsing several pages pings you once, not on every click/refresh.
-- **The notification shows** the page path, the referrer (where they came from), and the local time.
+- **Each notification shows only business-relevant info:** new vs returning visitor, which page they
+  landed on, how they found you (Google / Instagram / WhatsApp / direct, etc.), approximate location
+  (city, region, country + flag), device (mobile or desktop), and the local time.
+- **Location is approximate.** It is IP-based — usually city/ISP level, often the mobile carrier's
+  gateway city rather than the exact town, and VPNs will mislead it. Treat it as a rough hint, not a fix.
+- **Privacy:** to look up location, each visitor's IP is sent to ipapi.co (a third party). Your site
+  stores nothing. Want location removed? Tell me and I'll strip just that part out.
 - **It counts everything** that loads the page with JavaScript on — including bots, crawlers, and you.
   Treat it as a "someone stopped by" signal, not analytics.
-- **Won't fire** for visitors who block JavaScript, and the free ntfy tier has (generous) rate limits.
+- **Edge cases:** won't fire if a visitor blocks JavaScript; very fast bounces (under ~2s) may
+  occasionally be missed because the location lookup runs first. The free location tier (ipapi.co) is
+  ~1,000 lookups/day — past that the location line reads "(rate-limited)" and the rest still arrives.
 
 ## Security note (important)
 
