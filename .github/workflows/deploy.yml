@@ -31,11 +31,26 @@ jobs:
       - name: Install
         run: npm ci
 
-      # The generated derivatives live in public/media, which is committed, so
-      # this is normally a no-op. It re-runs only when a source photograph in
-      # assets/source has changed, and the .stamp files make it incremental.
-      - name: Optimise images
-        run: npm run images
+      # Image derivatives are NOT regenerated here. They live in public/media
+      # and are committed, and the .stamp files that make regeneration
+      # incremental are gitignored, so running the pipeline in CI would
+      # rebuild all sixteen images from scratch on every deploy: about two
+      # minutes, for output that should be byte-identical to what is already
+      # in the repository.
+      #
+      # The contract is therefore: whoever adds or changes a photograph runs
+      # `npm run images` locally and commits the result. This step only checks
+      # that they did.
+      - name: Check image derivatives are committed
+        run: |
+          test -f src/content/generated/media.ts || {
+            echo "::error::src/content/generated/media.ts is missing. Run 'npm run images' locally and commit the result."
+            exit 1
+          }
+          test -d public/media || {
+            echo "::error::public/media is missing. Run 'npm run images' locally and commit the result."
+            exit 1
+          }
 
       - name: Type check
         run: npm run typecheck

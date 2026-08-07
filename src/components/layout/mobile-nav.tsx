@@ -19,8 +19,23 @@ import { cn } from '@/lib/utils'
  * execute removed from the critical path, for a component most visitors never
  * open. The header keeps a plain <button> as the trigger, so the tap target
  * exists and is labelled before the chunk arrives.
+ *
+ * The sheet closes itself on any navigation from inside it. An earlier version
+ * relied on the header watching `pathname` and remounting this with a new key,
+ * which did nothing useful: remounting a component whose parent still holds
+ * `open: true` just renders it open again, so tapping a link left the menu
+ * covering the page you had just navigated to. Closing at the point of the tap
+ * is simpler and correct, and it also handles a link to the page you are
+ * already on, where the pathname never changes at all.
  */
 export function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  // One handler per region rather than one per link: any tap that lands on an
+  // anchor closes the sheet, including the phone number and the WhatsApp
+  // button in the footer.
+  const closeIfLink = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest('a')) onOpenChange(false)
+  }
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -47,7 +62,11 @@ export function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange:
             </Dialog.Close>
           </div>
 
-          <nav aria-label="Mobile" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
+          <nav
+            aria-label="Mobile"
+            onClick={closeIfLink}
+            className="flex-1 overflow-y-auto overscroll-contain px-2 py-3"
+          >
             <ul>
               {PRIMARY_NAV.map((item) => (
                 <li key={item.href}>
@@ -80,7 +99,10 @@ export function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange:
             </ul>
           </nav>
 
-          <div className="border-t border-line p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div
+            onClick={closeIfLink}
+            className="border-t border-line p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          >
             <WhatsAppAction source="mobile_menu" size="lg" className="w-full" />
             <p className="mt-3 text-center text-caption text-ink-mute">
               Reception is open 24 hours ·{' '}

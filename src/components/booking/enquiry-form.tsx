@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BedDouble, ShieldCheck, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useId, useState } from 'react'
 import { DateTrigger } from '@/components/booking/date-trigger'
+import { SelectTrigger, type SelectOption } from '@/components/booking/select-field'
 import { Button } from '@/components/ui/button'
 import { ROOMS, formatINR } from '@/content/rooms'
 import { track } from '@/lib/analytics'
@@ -13,6 +14,11 @@ import { cn } from '@/lib/utils'
 
 const DateRangeField = dynamic(
   () => import('@/components/booking/date-range-field').then((m) => m.DateRangeField),
+  { ssr: false, loading: () => null },
+)
+
+const SelectField = dynamic(
+  () => import('@/components/booking/select-field').then((m) => m.SelectField),
   { ssr: false, loading: () => null },
 )
 
@@ -46,6 +52,18 @@ export function EnquiryForm({ className }: { className?: string }) {
   const setRange = setChosen
   // Same intent-based mount as the booking bar. See booking-bar.tsx.
   const [calendar, setCalendar] = useState<'idle' | 'ready' | 'opening'>('idle')
+  const [selects, setSelects] = useState<'idle' | 'guests' | 'room'>('idle')
+  const [guests, setGuests] = useState('2')
+  const [room, setRoom] = useState('')
+
+  const guestOptions: SelectOption[] = [1, 2, 3, 4, 5, 6, 8, 10].map((n) => ({
+    value: String(n),
+    label: `${n} ${n === 1 ? 'guest' : 'guests'}`,
+  }))
+  const roomOptions: SelectOption[] = [
+    { value: '', label: 'Not sure yet' },
+    ...ROOMS.map((r) => ({ value: r.slug, label: r.name, hint: formatINR(r.price) })),
+  ]
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -74,7 +92,7 @@ export function EnquiryForm({ className }: { className?: string }) {
       name: 'enquiry_submit',
       params: {
         source: 'enquiry_form',
-        room: String(data.get('room') || '') || undefined,
+        room: room || undefined,
         nights: nightsBetween(range.checkIn, range.checkOut),
       },
     })
@@ -83,8 +101,8 @@ export function EnquiryForm({ className }: { className?: string }) {
       whatsappUrl({
         checkIn: range.checkIn,
         checkOut: range.checkOut,
-        guests: Number(data.get('guests')) || undefined,
-        roomSlug: String(data.get('room') || '') || undefined,
+        guests: Number(guests) || undefined,
+        roomSlug: room || undefined,
         source: 'enquiry_form',
         note,
       }),
@@ -162,30 +180,46 @@ export function EnquiryForm({ className }: { className?: string }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`${uid}-guests`} className={label}>
-              Guests
-            </label>
-            <select id={`${uid}-guests`} name="guests" defaultValue="2" className={cn(field, 'mt-2')}>
-              {[1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? 'guest' : 'guests'}
-                </option>
-              ))}
-            </select>
+          <div className="overflow-hidden rounded-[0.625rem] border border-line">
+            {selects === 'guests' ? (
+              <SelectField
+                label="Guests"
+                icon={Users}
+                value={guests}
+                options={guestOptions}
+                onChange={setGuests}
+                autoOpen
+              />
+            ) : (
+              <SelectTrigger
+                label="Guests"
+                icon={Users}
+                display={guestOptions.find((o) => o.value === guests)?.label ?? ''}
+                onPointerEnter={() => setSelects((v) => (v === 'idle' ? 'guests' : v))}
+                onClick={() => setSelects('guests')}
+              />
+            )}
           </div>
-          <div>
-            <label htmlFor={`${uid}-room`} className={label}>
-              Room
-            </label>
-            <select id={`${uid}-room`} name="room" defaultValue="" className={cn(field, 'mt-2')}>
-              <option value="">Not sure yet</option>
-              {ROOMS.map((room) => (
-                <option key={room.slug} value={room.slug}>
-                  {room.name} · {formatINR(room.price)}
-                </option>
-              ))}
-            </select>
+          <div className="overflow-hidden rounded-[0.625rem] border border-line">
+            {selects === 'room' ? (
+              <SelectField
+                label="Room"
+                icon={BedDouble}
+                value={room}
+                options={roomOptions}
+                onChange={setRoom}
+                autoOpen
+              />
+            ) : (
+              <SelectTrigger
+                label="Room"
+                icon={BedDouble}
+                display={roomOptions.find((o) => o.value === room)?.label ?? 'Not sure yet'}
+                hint={roomOptions.find((o) => o.value === room)?.hint}
+                onPointerEnter={() => setSelects((v) => (v === 'idle' ? 'room' : v))}
+                onClick={() => setSelects('room')}
+              />
+            )}
           </div>
         </div>
 

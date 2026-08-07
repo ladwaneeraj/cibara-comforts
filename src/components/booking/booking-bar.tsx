@@ -1,10 +1,11 @@
 'use client'
 
-import { ChevronDown, Users } from 'lucide-react'
+import { BedDouble, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { WhatsAppAction } from '@/components/booking/actions'
 import { DateTrigger } from '@/components/booking/date-trigger'
+import { SelectTrigger, type SelectOption } from '@/components/booking/select-field'
 import { ROOMS, formatINR } from '@/content/rooms'
 import { track } from '@/lib/analytics'
 import { estimateTotal, type Enquiry } from '@/lib/booking'
@@ -29,6 +30,18 @@ import { cn } from '@/lib/utils'
  */
 const DateRangeField = dynamic(
   () => import('@/components/booking/date-range-field').then((m) => m.DateRangeField),
+  { ssr: false, loading: () => null },
+)
+
+/**
+ * The guest and room selects follow the same pattern as the calendar: a
+ * statically rendered trigger, with the interactive listbox loaded on intent.
+ * A native <select> was here first; its popup is drawn by the operating system
+ * and cannot be styled, which undid the rest of the design every time somebody
+ * opened it. See select-field.tsx.
+ */
+const SelectField = dynamic(
+  () => import('@/components/booking/select-field').then((m) => m.SelectField),
   { ssr: false, loading: () => null },
 )
 
@@ -59,7 +72,6 @@ export function BookingBar({
   className?: string
   variant?: 'panel' | 'inline'
 }) {
-  const uid = useId()
   // Empty during hydration, then the real date. See lib/dates.ts.
   const today = useClientToday()
 
@@ -80,6 +92,23 @@ export function BookingBar({
   const [calendar, setCalendar] = useState<'idle' | 'ready' | 'opening'>('idle')
   const warm = () => setCalendar((c) => (c === 'idle' ? 'ready' : c))
 
+  // The two selects share one intent gate: opening either means the guest is
+  // configuring the booking, so warming both is right and costs one chunk.
+  const [selects, setSelects] = useState<'idle' | 'guests' | 'room'>('idle')
+
+  const guestOptions: SelectOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
+    value: String(n),
+    label: `${n} ${n === 1 ? 'guest' : 'guests'}`,
+  }))
+
+  const roomOptions: SelectOption[] = [
+    { value: '', label: 'Any room' },
+    ...ROOMS.map((r) => ({ value: r.slug, label: r.shortName, hint: formatINR(r.price) })),
+  ]
+
+  const guestLabel = guestOptions.find((o) => o.value === String(guests))?.label ?? ''
+  const roomOption = roomOptions.find((o) => o.value === room)
+
   const enquiry: Enquiry = {
     checkIn: range.checkIn,
     checkOut: range.checkOut,
@@ -90,11 +119,6 @@ export function BookingBar({
 
   const estimate = estimateTotal(enquiry)
   const nights = nightsBetween(range.checkIn, range.checkOut)
-
-  const selectClass =
-    'peer h-full min-h-[3.5rem] w-full appearance-none bg-transparent pt-5 pr-6 pb-1.5 text-[0.9375rem] text-ink outline-none sm:min-h-[3.75rem] sm:pt-6 sm:pb-2'
-  const labelClass =
-    'pointer-events-none absolute top-1.5 left-0 flex items-center gap-1.5 text-[0.625rem] font-medium tracking-[0.14em] text-ink-mute uppercase sm:top-2 sm:text-[0.6875rem]'
 
   return (
     <div
@@ -144,51 +168,48 @@ export function BookingBar({
           )}
         </div>
 
-        <div className="relative bg-paper px-4">
-          <label htmlFor={`${uid}-guests`} className={labelClass}>
-            <Users className="size-3" aria-hidden />
-            Guests
-          </label>
-          <select
-            id={`${uid}-guests`}
-            value={guests}
-            onChange={(e) => setGuests(Number(e.target.value))}
-            className={selectClass}
-          >
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>
-                {n} {n === 1 ? 'guest' : 'guests'}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute right-3 bottom-3 size-4 text-ink-mute"
-            aria-hidden
-          />
+        <div className="relative bg-paper">
+          {selects === 'guests' ? (
+            <SelectField
+              label="Guests"
+              icon={Users}
+              value={String(guests)}
+              options={guestOptions}
+              onChange={(v) => setGuests(Number(v))}
+              autoOpen
+            />
+          ) : (
+            <SelectTrigger
+              label="Guests"
+              icon={Users}
+              display={guestLabel}
+              onPointerEnter={() => setSelects((s) => (s === 'idle' ? 'guests' : s))}
+              onClick={() => setSelects('guests')}
+            />
+          )}
         </div>
 
         {!roomSlug && (
-          <div className="relative bg-paper px-4">
-            <label htmlFor={`${uid}-room`} className={labelClass}>
-              Room
-            </label>
-            <select
-              id={`${uid}-room`}
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Any room</option>
-              {ROOMS.map((r) => (
-                <option key={r.slug} value={r.slug}>
-                  {r.shortName} · {formatINR(r.price)}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-3 bottom-3 size-4 text-ink-mute"
-              aria-hidden
-            />
+          <div className="relative bg-paper">
+            {selects === 'room' ? (
+              <SelectField
+                label="Room"
+                icon={BedDouble}
+                value={room}
+                options={roomOptions}
+                onChange={setRoom}
+                autoOpen
+              />
+            ) : (
+              <SelectTrigger
+                label="Room"
+                icon={BedDouble}
+                display={roomOption?.label ?? 'Any room'}
+                hint={roomOption?.hint}
+                onPointerEnter={() => setSelects((s) => (s === 'idle' ? 'room' : s))}
+                onClick={() => setSelects('room')}
+              />
+            )}
           </div>
         )}
       </div>

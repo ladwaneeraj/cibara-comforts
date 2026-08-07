@@ -72,7 +72,10 @@ export function Header() {
       )}
     >
       <div className="container-page flex h-[4.5rem] items-center justify-between gap-4 lg:h-20">
-        <Link href="/" className="shrink-0 rounded-sm" aria-label={`${HOTEL.name}, home`}>
+        {/* No aria-label: the wordmark's own text is the accessible name, and
+            an aria-label that omitted the visible "Harihar, Karnataka" line
+            was a WCAG 2.5.3 label-in-name mismatch. */}
+        <Link href="/" className="shrink-0 rounded-sm">
           <Logo compact={scrolled} />
         </Link>
 
@@ -175,9 +178,9 @@ export function Header() {
           </button>
 
           {/* Mounted only after first paint, so the chunk is never fetched on
-              the critical path. Keyed on pathname so a navigation remounts it
-              closed, which avoids a setState-in-effect to close it manually. */}
-          {mounted && <MobileNav key={pathname} open={open} onOpenChange={setOpen} />}
+              the critical path. The sheet closes itself when a link inside it
+              is tapped; see mobile-nav.tsx. */}
+          {mounted && <MobileNav open={open} onOpenChange={setOpen} />}
         </div>
       </div>
     </header>

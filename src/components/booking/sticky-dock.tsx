@@ -1,6 +1,6 @@
 'use client'
 
-import { MessageCircle, Navigation, Phone } from 'lucide-react'
+import { ArrowUp, MessageCircle, Navigation, Phone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { track } from '@/lib/analytics'
 import { DIRECTIONS_URL, TEL_URL, whatsappUrl } from '@/lib/booking'
@@ -17,17 +17,37 @@ import { cn } from '@/lib/utils'
  * Desktop: a vertical rail on the right, out of the reading column.
  *
  * Three actions and no more. A dock with five buttons is a menu, and menus do
- * not convert.
+ * not convert. Back to top is therefore a separate small control that floats
+ * above the dock rather than a fourth item competing with the three that make
+ * money, and it only appears once you are deep enough down the page for the
+ * scroll back to be genuinely tedious.
  */
 export function StickyDock({ roomSlug }: { roomSlug?: string }) {
   const [visible, setVisible] = useState(false)
+  const [deep, setDeep] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > window.innerHeight * 0.6)
+    // One listener for both thresholds. The dock appears past the hero; back
+    // to top waits until two and a half screens, where flicking up by hand
+    // starts to be a chore.
+    const onScroll = () => {
+      const y = window.scrollY
+      setVisible(y > window.innerHeight * 0.6)
+      setDeep(y > window.innerHeight * 2.5)
+    }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  const toTop = () => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
+    // Send focus back to the top of the document as well as the viewport,
+    // otherwise a keyboard user scrolls to the top and then tabs from wherever
+    // they were, which is worse than not offering the button at all.
+    document.getElementById('main')?.focus({ preventScroll: true })
+  }
 
   const items = [
     {
@@ -96,6 +116,24 @@ export function StickyDock({ roomSlug }: { roomSlug?: string }) {
           ))}
         </ul>
       </nav>
+
+      {/* Back to top. Floats clear of the dock on mobile, sits above the rail
+          on desktop, and is hidden from print. */}
+      <button
+        type="button"
+        onClick={toTop}
+        aria-label="Back to top"
+        className={cn(
+          'no-print fixed right-4 z-50 grid size-11 place-items-center rounded-full',
+          'border border-line bg-paper/95 text-ink-soft shadow-[var(--shadow-card)] backdrop-blur-md',
+          'transition-all duration-500 ease-[var(--ease-swift)]',
+          'hover:-translate-y-0.5 hover:text-ink hover:shadow-[var(--shadow-lift)]',
+          'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:right-5 lg:bottom-[13.5rem]',
+          deep ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0',
+        )}
+      >
+        <ArrowUp className="size-4" aria-hidden />
+      </button>
 
       {/* Desktop: right-hand rail */}
       <div
