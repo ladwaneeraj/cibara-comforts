@@ -85,7 +85,10 @@ weakest link and the cheapest thing to improve. In rough order of return:
    the best image in the set, which tells you these work.
 6. **The corridor and stairwell.** Guests want to know what they walk through.
 7. **Harihareshwara Temple at 7am** and the Tungabhadra ghats at sunset, for
-   the guides.
+   the guides. The guide covers are currently drawn marks rather than
+   photographs, deliberately (see `docs/ARCHITECTURE.md` §8c). Once you have
+   real shots, set `photo` on the guide in `src/content/guides.ts` and the
+   cover, the card and the social image all switch over. Nothing else changes.
 
 Practical notes: shoot in the morning or at dusk, never midday. Turn every lamp
 on. Make the bed properly and remove the red plastic chair from frame. Shoot at

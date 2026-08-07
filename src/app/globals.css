@@ -39,6 +39,15 @@
   --color-brass-3: #6f5636;
   --color-terracotta: #9c4b32;
 
+  /* Text on the always-dark forest surfaces.
+     These deliberately do NOT flip with the theme. The forest sections are
+     dark in both light and dark mode, so colouring their text with `paper`
+     (which inverts) produced dark-on-dark text in dark mode. Any surface that
+     is dark in both themes must use these, never the paper scale.
+     Contrast against forest and forest-3, in both themes: 5.8:1 to 16.9:1. */
+  --color-cream: #f4efe6;
+  --color-cream-soft: #cfc8b8;
+
   /* Semantic */
   --color-positive: #3f6b4a;
 

@@ -29,8 +29,33 @@ const FORCE = process.env.FORCE === '1'
 /** Widths we emit. A width is skipped when it exceeds the source width. */
 const WIDTHS = [420, 640, 828, 1080, 1440, 1920, 2560]
 
-/** Quality per format. AVIF is the primary; WebP is the compatibility path. */
-const QUALITY = { avif: 52, webp: 74, jpeg: 82 }
+/**
+ * Quality per format. AVIF is the primary; WebP is the compatibility path.
+ *
+ * Nudged from 52/74 rather than pushed hard, because measurement said the
+ * quality number was not where the softness came from. Side by side at 828px,
+ * the clarity pass at q52 beats the old pipeline at q64 comfortably, while
+ * q58 is almost indistinguishable from q52 and costs 25% more bytes. So the
+ * detail comes from `clarity()` below and the encoder setting stays modest:
+ * the 1440px hero lands around 130 KB rather than 187 KB.
+ */
+const QUALITY = { avif: 54, webp: 76, jpeg: 86 }
+
+/**
+ * Per-image quality overrides.
+ *
+ * The hero sits behind a 32% flat scrim and two gradients, so most of its fine
+ * detail is never seen, while it is the single largest thing on the critical
+ * path. Spending the same bits there as on a room card, which a guest studies
+ * closely before booking, is the wrong allocation. Dropping the hero alone
+ * takes roughly 10 KB off the mobile LCP image with no visible difference
+ * through the scrim.
+ */
+const QUALITY_OVERRIDES = {
+  hero2: { avif: 44, webp: 66 },
+  hero1: { avif: 46, webp: 68 },
+  hero4: { avif: 48, webp: 70 },
+}
 
 /**
  * AVIF encoder effort. 4 is roughly 5x faster than 6 for a ~3% size penalty,
@@ -67,20 +92,56 @@ async function mapLimit(items, limit, fn) {
  */
 function grade(pipeline) {
   return pipeline
-    .modulate({ saturation: 0.85, brightness: 1.03 })
-    .linear([1.04, 1.005, 0.94], [2, 3, 6])
-    .gamma(1.06)
+    .modulate({ saturation: 0.92, brightness: 1.035 })
+    .linear([1.06, 1.01, 0.945], [0, 2, 5])
+    .gamma(1.05)
 }
 
-async function newestSourceMTime(file) {
-  return (await stat(file)).mtimeMs
+/**
+ * Local contrast, applied before the resize.
+ *
+ * A wide-radius, low-amount unsharp mask. It does not sharpen edges so much as
+ * separate tonal regions, which is what makes a soft photograph read as having
+ * depth. This is the single biggest improvement available on 1200px sources
+ * short of reshooting them, and unlike an AI upscale it invents nothing: every
+ * pixel value it produces is derived from pixels that were already there.
+ */
+function clarity(pipeline) {
+  return pipeline.sharpen({ sigma: 3.2, m1: 0, m2: 0.55, x1: 2, y2: 12 })
 }
+
+/**
+ * Fingerprint of every setting that affects the output.
+ *
+ * Written into the .stamp file so that changing the grade, the quality or the
+ * width list invalidates the cache automatically. The first version keyed only
+ * on the source file's mtime, which meant a grade change silently produced
+ * nothing and looked like the change had not worked.
+ */
+const CONFIG_HASH = createHash('sha1')
+  .update(
+    JSON.stringify({
+      WIDTHS,
+      QUALITY,
+      QUALITY_OVERRIDES,
+      AVIF_EFFORT,
+      grade: grade.toString(),
+      clarity: clarity.toString(),
+    }),
+  )
+  .digest('hex')
+  .slice(0, 12)
 
 async function isStale(sourceFile, id) {
   if (FORCE) return true
+  const stampPath = path.join(OUT_DIR, id, '.stamp')
   try {
-    const marker = await stat(path.join(OUT_DIR, id, '.stamp'))
-    return (await newestSourceMTime(sourceFile)) > marker.mtimeMs
+    const [marker, previousConfig] = await Promise.all([
+      stat(stampPath),
+      readFile(stampPath, 'utf8'),
+    ])
+    if (previousConfig.trim() !== CONFIG_HASH) return true
+    return (await stat(sourceFile)).mtimeMs > marker.mtimeMs
   } catch {
     return true
   }
@@ -109,7 +170,7 @@ async function dominantColor(buffer) {
 async function processOne(file) {
   const id = path.basename(file, path.extname(file))
   const sourcePath = path.join(SOURCE_DIR, file)
-  const graded = await grade(sharp(sourcePath).rotate()).toBuffer()
+  const graded = await clarity(grade(sharp(sourcePath).rotate())).toBuffer()
   const meta = await sharp(graded).metadata()
 
   const entry = {
@@ -131,18 +192,20 @@ async function processOne(file) {
   const dir = path.join(OUT_DIR, id)
   await mkdir(dir, { recursive: true })
 
+  const q = { ...QUALITY, ...(QUALITY_OVERRIDES[id] ?? {}) }
+
   for (const w of entry.widths) {
     const resized = sharp(graded).resize(w, null, {
       fit: 'inside',
       withoutEnlargement: true,
       kernel: 'lanczos3',
     })
-    // Light sharpening after downscale; without it AVIF at low quality reads
-    // soft on room detail like the cane discs and tile grout.
-    const sharpened = resized.sharpen({ sigma: 0.6, m1: 0.4, m2: 0.7 })
+    // Fine sharpening after the downscale, to restore edge definition lost to
+    // resampling. Paired with the clarity pass applied before resizing.
+    const sharpened = resized.sharpen({ sigma: 0.7, m1: 0.5, m2: 0.9 })
     await Promise.all([
-      sharpened.clone().avif({ quality: QUALITY.avif, effort: AVIF_EFFORT }).toFile(path.join(dir, `${w}.avif`)),
-      sharpened.clone().webp({ quality: QUALITY.webp, effort: 4 }).toFile(path.join(dir, `${w}.webp`)),
+      sharpened.clone().avif({ quality: q.avif, effort: AVIF_EFFORT }).toFile(path.join(dir, `${w}.avif`)),
+      sharpened.clone().webp({ quality: q.webp, effort: 4 }).toFile(path.join(dir, `${w}.webp`)),
     ])
   }
 
@@ -152,7 +215,7 @@ async function processOne(file) {
     .jpeg({ quality: QUALITY.jpeg, mozjpeg: true, progressive: true })
     .toFile(path.join(dir, 'fallback.jpg'))
 
-  await writeFile(path.join(dir, '.stamp'), '')
+  await writeFile(path.join(dir, '.stamp'), CONFIG_HASH)
   process.stdout.write(`  ${id} ${entry.width}x${entry.height} -> ${entry.widths.length} widths\n`)
   return entry
 }
@@ -172,14 +235,64 @@ const OG = [
   { out: 'location', from: 'hero1', focal: 0.55 },
 ]
 
+/**
+ * Guide OpenGraph cards.
+ *
+ * Rendered from the same SVG marks the guide covers use, so a shared link
+ * previews as the subject of the article rather than as a hotel bedroom. Pure
+ * vector with no text, which means no font dependency in the build: every
+ * platform shows the title as text beside the image anyway.
+ */
+async function buildGuideOgCards() {
+  const { GUIDES } = await import('../src/content/guides.ts')
+  const { GUIDE_MARKS, MARK_VIEWBOX } = await import('../src/content/guide-marks.ts')
+
+  const FOREST = '#1b2f23'
+  const BRASS = '#c9a97c'
+
+  await mkdir('public/og', { recursive: true })
+  let made = 0
+
+  for (const guide of GUIDES) {
+    // A real photograph, once one exists, wins over the drawn mark.
+    if (guide.photo) continue
+
+    const mark = GUIDE_MARKS[guide.mark]
+    if (!mark) continue
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0v56" fill="none" stroke="${BRASS}" stroke-width="1.6" opacity="0.13"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="${FOREST}"/>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <g transform="translate(300 55) scale(1.5)" color="${BRASS}">
+    <svg width="400" height="260" viewBox="${MARK_VIEWBOX}">${mark.replaceAll('currentColor', BRASS)}</svg>
+  </g>
+  <rect x="56" y="56" width="52" height="52" fill="none" stroke="${BRASS}" stroke-width="2" opacity="0.3"/>
+  <rect x="1092" y="522" width="52" height="52" fill="none" stroke="${BRASS}" stroke-width="2" opacity="0.3"/>
+</svg>`
+
+    await sharp(Buffer.from(svg), { density: 144 })
+      .resize(1200, 630)
+      .jpeg({ quality: 88, mozjpeg: true })
+      .toFile(`public/og/guide-${guide.slug}.jpg`)
+    made += 1
+  }
+
+  console.log(`Wrote ${made} guide OpenGraph cards`)
+}
+
 async function buildOgCards() {
   await mkdir('public/og', { recursive: true })
   for (const card of OG) {
     const source = (await readdir(SOURCE_DIR)).find((f) => path.basename(f, path.extname(f)) === card.from)
     if (!source) continue
-    await grade(sharp(path.join(SOURCE_DIR, source)).rotate())
+    await clarity(grade(sharp(path.join(SOURCE_DIR, source)).rotate()))
       .resize(1200, 630, { fit: 'cover', position: sharp.strategy.attention })
-      .jpeg({ quality: 84, mozjpeg: true })
+      .jpeg({ quality: 88, mozjpeg: true })
       .toFile(`public/og/${card.out}.jpg`)
   }
   // One card per room, so a shared room link previews that actual room.
@@ -188,9 +301,9 @@ async function buildOgCards() {
   for (const [, slug, id] of pairs) {
     const source = (await readdir(SOURCE_DIR)).find((f) => path.basename(f, path.extname(f)) === id)
     if (!source) continue
-    await grade(sharp(path.join(SOURCE_DIR, source)).rotate())
+    await clarity(grade(sharp(path.join(SOURCE_DIR, source)).rotate()))
       .resize(1200, 630, { fit: 'cover', position: sharp.strategy.attention })
-      .jpeg({ quality: 84, mozjpeg: true })
+      .jpeg({ quality: 88, mozjpeg: true })
       .toFile(`public/og/room-${slug}.jpg`)
   }
   console.log(`Wrote ${OG.length + pairs.length} OpenGraph cards`)
@@ -257,6 +370,7 @@ export type MediaId = keyof typeof MEDIA
   console.log(`Wrote ${MANIFEST} (${entries.length} entries, ${(total / 1024 / 1024).toFixed(1)} MB of AVIF)`)
 
   await buildOgCards()
+  await buildGuideOgCards()
   await buildIcons()
 }
 

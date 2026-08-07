@@ -33,7 +33,8 @@ export function Section({
         'py-[var(--spacing-section)]',
         tone === 'paper' && 'bg-paper',
         tone === 'sand' && 'bg-paper-2',
-        tone === 'forest' && 'bg-forest text-paper-2 dark:bg-forest-2',
+        // `cream`, not `paper`: this surface is dark in both themes.
+        tone === 'forest' && 'bg-forest text-cream-soft dark:bg-forest-2',
         className,
       )}
     >
@@ -84,7 +85,7 @@ export function SectionHeading({
       )}
       <h2
         id={id}
-        className={cn('mt-4 text-[length:var(--text-h2)]', onDark && 'text-paper')}
+        className={cn('mt-4 text-[length:var(--text-h2)]', onDark && 'text-cream')}
       >
         {title}
       </h2>
@@ -92,7 +93,7 @@ export function SectionHeading({
         <p
           className={cn(
             'mt-5 text-[length:var(--text-lead)] leading-relaxed text-ink-soft',
-            onDark && 'text-paper-3/85',
+            onDark && 'text-cream-soft',
             align === 'center' && 'mx-auto',
           )}
         >

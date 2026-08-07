@@ -1,6 +1,6 @@
 import { HOTEL } from '@/content/hotel'
 import { formatINR, ROOMS_BY_SLUG } from '@/content/rooms'
-import { nights, shortDate } from './utils'
+import { formatShort, nightsBetween } from './dates'
 
 /**
  * Booking is enquiry-first by design.
@@ -33,14 +33,14 @@ function line(label: string, value: string | undefined): string | null {
 /** Human-readable WhatsApp message body. Kept short; long messages get skimmed. */
 export function enquiryMessage(e: Enquiry = {}): string {
   const room = e.roomSlug ? ROOMS_BY_SLUG[e.roomSlug] : undefined
-  const n = e.checkIn && e.checkOut ? nights(e.checkIn, e.checkOut) : 0
+  const n = e.checkIn && e.checkOut ? nightsBetween(e.checkIn, e.checkOut) : 0
 
   const parts = [
     `Hello ${HOTEL.name}, I would like to book a room.`,
     '',
     line('Room', room ? `${room.name} (${formatINR(room.price)} / ${room.priceUnit})` : undefined),
-    line('Check in', e.checkIn ? shortDate(e.checkIn) : undefined),
-    line('Check out', e.checkOut ? shortDate(e.checkOut) : undefined),
+    line('Check in', e.checkIn ? formatShort(e.checkIn) : undefined),
+    line('Check out', e.checkOut ? formatShort(e.checkOut) : undefined),
     line('Nights', n > 0 ? String(n) : undefined),
     line('Guests', e.guests ? String(e.guests) : undefined),
     e.note ? `\n${e.note}` : null,
@@ -73,7 +73,7 @@ export function estimateTotal(e: Enquiry): { nights: number; total: number; brea
   const room = e.roomSlug ? ROOMS_BY_SLUG[e.roomSlug] : undefined
   if (!room || !e.checkIn || !e.checkOut) return null
 
-  const n = nights(e.checkIn, e.checkOut)
+  const n = nightsBetween(e.checkIn, e.checkOut)
   if (n <= 0) return null
 
   const guests = e.guests ?? room.occupancy.standard

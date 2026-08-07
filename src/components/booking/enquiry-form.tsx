@@ -1,12 +1,20 @@
 'use client'
 
 import { ArrowRight, ShieldCheck } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useId, useState } from 'react'
+import { DateTrigger } from '@/components/booking/date-trigger'
 import { Button } from '@/components/ui/button'
 import { ROOMS, formatINR } from '@/content/rooms'
 import { track } from '@/lib/analytics'
 import { whatsappUrl } from '@/lib/booking'
-import { addDays, cn, isoDate, nights } from '@/lib/utils'
+import { addDaysISO, nightsBetween, useClientToday } from '@/lib/dates'
+import { cn } from '@/lib/utils'
+
+const DateRangeField = dynamic(
+  () => import('@/components/booking/date-range-field').then((m) => m.DateRangeField),
+  { ssr: false, loading: () => null },
+)
 
 /**
  * Enquiry form.
@@ -31,7 +39,13 @@ export function EnquiryForm({ className }: { className?: string }) {
   const [mountedAt] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
 
-  const today = isoDate(new Date())
+  const today = useClientToday()
+  const [chosen, setChosen] = useState<{ checkIn: string; checkOut: string } | null>(null)
+  const range = chosen ??
+    (today ? { checkIn: today, checkOut: addDaysISO(today, 1) } : { checkIn: '', checkOut: '' })
+  const setRange = setChosen
+  // Same intent-based mount as the booking bar. See booking-bar.tsx.
+  const [calendar, setCalendar] = useState<'idle' | 'ready' | 'opening'>('idle')
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,8 +62,6 @@ export function EnquiryForm({ className }: { className?: string }) {
 
     setError(null)
 
-    const checkIn = String(data.get('checkIn') || '')
-    const checkOut = String(data.get('checkOut') || '')
     const note = [
       `Name: ${data.get('name')}`,
       data.get('phone') ? `Phone: ${data.get('phone')}` : null,
@@ -63,14 +75,14 @@ export function EnquiryForm({ className }: { className?: string }) {
       params: {
         source: 'enquiry_form',
         room: String(data.get('room') || '') || undefined,
-        nights: checkIn && checkOut ? nights(checkIn, checkOut) : undefined,
+        nights: nightsBetween(range.checkIn, range.checkOut),
       },
     })
 
     window.open(
       whatsappUrl({
-        checkIn: checkIn || undefined,
-        checkOut: checkOut || undefined,
+        checkIn: range.checkIn,
+        checkOut: range.checkOut,
         guests: Number(data.get('guests')) || undefined,
         roomSlug: String(data.get('room') || '') || undefined,
         source: 'enquiry_form',
@@ -127,32 +139,25 @@ export function EnquiryForm({ className }: { className?: string }) {
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`${uid}-in`} className={label}>
-              Check in
-            </label>
-            <input
-              id={`${uid}-in`}
-              name="checkIn"
-              type="date"
-              min={today}
-              defaultValue={today}
-              className={cn(field, 'mt-2')}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${uid}-out`} className={label}>
-              Check out
-            </label>
-            <input
-              id={`${uid}-out`}
-              name="checkOut"
-              type="date"
-              min={today}
-              defaultValue={isoDate(addDays(new Date(), 1))}
-              className={cn(field, 'mt-2')}
-            />
+        <div>
+          <span className={label}>Your stay</span>
+          <div className="mt-2 overflow-hidden rounded-[0.625rem] border border-line">
+            {calendar === 'idle' || !today ? (
+              <DateTrigger
+                checkIn={range.checkIn}
+                checkOut={range.checkOut}
+                onPointerEnter={() => setCalendar('ready')}
+                onTouchStart={() => setCalendar('ready')}
+                onClick={() => setCalendar('opening')}
+              />
+            ) : (
+              <DateRangeField
+                checkIn={range.checkIn}
+                checkOut={range.checkOut}
+                onChange={setRange}
+                autoOpen={calendar === 'opening'}
+              />
+            )}
           </div>
         </div>
 

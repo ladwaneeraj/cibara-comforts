@@ -1,4 +1,5 @@
 import type { MediaId } from './generated/media'
+import type { GuideMarkId } from './guide-marks'
 
 /**
  * Travel guides.
@@ -23,8 +24,20 @@ export type Guide = {
   /** Display heading, split into masked lines. */
   headingLines: string[]
   standfirst: string
-  image: MediaId
-  imageAlt: string
+  /**
+   * The drawn cover mark. See content/guide-marks.ts: the guides are about the
+   * temple, the road and the town, and there is no photograph of any of them,
+   * so a room photo here would be telling the reader one thing and showing
+   * them another.
+   */
+  mark: GuideMarkId
+  /**
+   * A real photograph of the guide's actual subject, once one exists. Setting
+   * this overrides the drawn mark everywhere: the cover, the card and the
+   * OpenGraph image.
+   */
+  photo?: MediaId
+  photoAlt?: string
   published: string
   updated?: string
   readingMinutes: number
@@ -42,8 +55,7 @@ export const GUIDES: Guide[] = [
     headingLines: ['Bengaluru to Hampi,', 'the sensible way'],
     standfirst:
       'Seven hours in one push puts you at the ruins in the worst heat of the day. Splitting the drive costs one night and changes the whole trip.',
-    image: 'hero1',
-    imageAlt: 'A warmly lit room at Cibara Comforts, a stopping point on the Bengaluru to Hampi drive',
+    mark: 'road',
     published: '2026-06-02',
     readingMinutes: 6,
     tags: ['Hampi', 'Road trips', 'Karnataka'],
@@ -115,8 +127,7 @@ If Harihar is where you decide to stop, [we are 800 metres from the railway stat
     headingLines: ['Harihareshwara Temple,', 'before the day starts'],
     standfirst:
       'A 12th century Hoysala temple to a god who is half Vishnu and half Shiva, in a town almost nobody stops in. Go at seven in the morning.',
-    image: 'premium3',
-    imageAlt: 'A quiet room at Cibara Comforts, fifteen minutes on foot from Harihareshwara Temple',
+    mark: 'temple',
     published: '2026-05-18',
     readingMinutes: 5,
     tags: ['Temples', 'Harihar', 'Hoysala'],
@@ -174,8 +185,7 @@ We are [fifteen minutes from the temple on foot](/hotels-near-harihareshwara-tem
     headingLines: ['What there is to do', 'in Harihar'],
     standfirst:
       'A short list, written by people who live here. Harihar is a one-night town and pretending otherwise helps nobody.',
-    image: 'hero4',
-    imageAlt: 'A Premium room at Cibara Comforts in Harihar',
+    mark: 'town',
     published: '2026-04-27',
     readingMinutes: 5,
     tags: ['Harihar', 'Karnataka', 'Day trips'],
@@ -246,8 +256,7 @@ We are between the railway station and the bus stand, which puts all of the abov
     headingLines: ['How to get', 'to Harihar'],
     standfirst:
       'Harihar is on the Bengaluru to Hubballi line and five minutes off NH-48, which makes it one of the easier small towns in Karnataka to reach.',
-    image: 'double1',
-    imageAlt: 'A Double room at Cibara Comforts, 800 metres from Harihar railway station',
+    mark: 'transport',
     published: '2026-04-10',
     readingMinutes: 4,
     tags: ['Transport', 'Harihar', 'Trains'],

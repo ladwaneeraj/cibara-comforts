@@ -44,8 +44,8 @@ export function Audiences() {
               >
                 <Link href={href} className="flex h-full flex-col p-7 lg:p-8">
                   <audience.icon className="size-5 text-brass-2" aria-hidden />
-                  <h3 className="mt-5 text-[1.125rem] text-paper">{audience.label}</h3>
-                  <p className="mt-2.5 flex-1 text-[0.875rem] leading-relaxed text-paper-3/70">
+                  <h3 className="mt-5 text-[1.125rem] text-cream">{audience.label}</h3>
+                  <p className="mt-2.5 flex-1 text-[0.875rem] leading-relaxed text-cream-soft/90">
                     {audience.pitch}
                   </p>
                   <p className="mt-6 inline-flex items-center gap-1.5 text-[0.75rem] tracking-wide text-brass-2">
@@ -67,8 +67,8 @@ export function Audiences() {
             className="bg-forest-3/60 sm:col-span-2 lg:col-span-2 dark:bg-forest-3/40"
           >
             <div className="flex h-full flex-col justify-center p-7 lg:p-8">
-              <h3 className="text-[1.125rem] text-paper">None of the above?</h3>
-              <p className="mt-2.5 max-w-md text-[0.875rem] leading-relaxed text-paper-3/70">
+              <h3 className="text-[1.125rem] text-cream">None of the above?</h3>
+              <p className="mt-2.5 max-w-md text-[0.875rem] leading-relaxed text-cream-soft/90">
                 Tell us why you are coming to Harihar and reception will tell you which room to
                 take, including when the answer is the cheapest one.
               </p>

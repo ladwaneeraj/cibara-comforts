@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { WhatsAppAction } from '@/components/booking/actions'
 import { PageHeader } from '@/components/layout/page-header'
-import { Picture } from '@/components/media/picture'
+import { GuideCover } from '@/components/guides/guide-cover'
 import { Reveal } from '@/components/motion/reveal'
 import { Section } from '@/components/ui/section'
 import { outline, Prose } from '@/components/ui/prose'
@@ -30,8 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: guide.seoTitle,
       description: guide.metaDescription,
       path: `/guides/${guide.slug}`,
-      image: `/media/${guide.image}/fallback.jpg`,
-      imageAlt: guide.imageAlt,
+      image: guide.photo ? `/media/${guide.photo}/fallback.jpg` : `/og/guide-${guide.slug}.jpg`,
+      imageAlt: guide.photoAlt ?? guide.title,
       article: {
         publishedTime: guide.published,
         modifiedTime: guide.updated ?? guide.published,
@@ -75,7 +75,9 @@ export default async function GuidePage({ params }: Props) {
               path: `/guides/${guide.slug}`,
               published: guide.published,
               modified: guide.updated,
-              image: `/media/${guide.image}/fallback.jpg`,
+              image: guide.photo
+                ? `/media/${guide.photo}/fallback.jpg`
+                : `/og/guide-${guide.slug}.jpg`,
             }),
           ),
         }}
@@ -102,10 +104,10 @@ export default async function GuidePage({ params }: Props) {
       <Section tone="paper" className="!pb-0">
         <div className="container-page">
           <Reveal>
-            <Picture
-              id={guide.image}
-              alt={guide.imageAlt}
-              sizes="100vw"
+            <GuideCover
+              mark={guide.mark}
+              photo={guide.photo}
+              photoAlt={guide.photoAlt}
               ratio="21 / 9"
               priority
               className="rounded-[var(--radius-card)]"
@@ -179,11 +181,12 @@ export default async function GuidePage({ params }: Props) {
                   href={`/guides/${other.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-paper transition-all duration-500 hover:-translate-y-1 hover:shadow-[var(--shadow-card)]"
                 >
-                  <Picture
-                    id={other.image}
-                    alt={other.imageAlt}
-                    sizes="(min-width: 768px) 30vw, 100vw"
+                  <GuideCover
+                    mark={other.mark}
+                    photo={other.photo}
+                    photoAlt={other.photoAlt}
                     ratio="16 / 9"
+                    compact
                     className="transition-transform duration-[1100ms] group-hover:scale-[1.04]"
                   />
                   <div className="flex flex-1 flex-col p-6">

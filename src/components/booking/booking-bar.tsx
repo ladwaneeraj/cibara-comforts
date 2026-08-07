@@ -1,25 +1,47 @@
 'use client'
 
-import { CalendarDays, ChevronDown, Users } from 'lucide-react'
-import { useId, useMemo, useState } from 'react'
+import { ChevronDown, Users } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { useId, useState } from 'react'
 import { WhatsAppAction } from '@/components/booking/actions'
+import { DateTrigger } from '@/components/booking/date-trigger'
 import { ROOMS, formatINR } from '@/content/rooms'
 import { track } from '@/lib/analytics'
 import { estimateTotal, type Enquiry } from '@/lib/booking'
-import { addDays, cn, isoDate, nights } from '@/lib/utils'
+import { addDaysISO, nightsBetween, useClientToday } from '@/lib/dates'
+import { cn } from '@/lib/utils'
+
+/**
+ * The calendar and its Radix Popover are fetched on intent, not on hydration.
+ *
+ * Two things were learned getting here, both by measurement.
+ *
+ * First, an approximate loading skeleton is worse than no lazy loading: the
+ * swap moved the row beneath it, cost 0.055 CLS, and the shift reset the LCP
+ * measurement. So the booking bar renders the real trigger markup itself,
+ * statically, at final size, and the interactive copy lays over it.
+ *
+ * Second, a plain `dynamic()` still fires its import during hydration, which
+ * on a throttled phone competes with everything else on the homepage's
+ * critical path. Mounting only on hover or first tap moves that cost to a
+ * moment when the guest has already declared intent, and preloading on hover
+ * means the tap itself still feels instant.
+ */
+const DateRangeField = dynamic(
+  () => import('@/components/booking/date-range-field').then((m) => m.DateRangeField),
+  { ssr: false, loading: () => null },
+)
 
 /**
  * The booking widget.
  *
- * Design brief was "booking in under thirty seconds". The three fields below
- * are the minimum a human at reception needs to hold a room, pre-filled with
- * tonight and tomorrow so the zero-interaction path is a single tap.
+ * Design brief was "booking in under thirty seconds". Three inputs, pre-filled
+ * with tonight and tomorrow, so the zero-interaction path is a single tap.
  *
- * Native `<input type="date">` rather than a custom calendar. A React date
- * picker with a decent accessibility story costs 25 to 40 KB and still loses
- * to the OS picker on a phone, which is where nearly all of this traffic is.
- * The native control is keyboard accessible, screen-reader labelled, localised
- * and free.
+ * Dates are one field, not two. Two separate date boxes make a guest think
+ * about check-in and check-out as unrelated facts; a single range field
+ * matches how people actually describe a stay and surfaces the night count,
+ * which is the number that drives the price.
  *
  * There is no availability call because there is no availability system. The
  * copy says "we will confirm in minutes" instead of showing a fabricated green
@@ -38,30 +60,39 @@ export function BookingBar({
   variant?: 'panel' | 'inline'
 }) {
   const uid = useId()
-  const today = isoDate(new Date())
-  const tomorrow = isoDate(addDays(new Date(), 1))
+  // Empty during hydration, then the real date. See lib/dates.ts.
+  const today = useClientToday()
 
-  const [checkIn, setCheckIn] = useState(today)
-  const [checkOut, setCheckOut] = useState(tomorrow)
+  const [chosen, setChosen] = useState<{ checkIn: string; checkOut: string } | null>(null)
+  const range = chosen ??
+    (today ? { checkIn: today, checkOut: addDaysISO(today, 1) } : { checkIn: '', checkOut: '' })
+  const setRange = setChosen
   const [guests, setGuests] = useState(2)
   const [room, setRoom] = useState(roomSlug ?? '')
 
-  // Check-out can never be on or before check-in.
-  const minCheckOut = useMemo(() => isoDate(addDays(new Date(`${checkIn}T00:00:00`), 1)), [checkIn])
-  const invalidRange = nights(checkIn, checkOut) < 1
+  // 'idle' until the guest shows intent. Hovering preloads the chunk; tapping
+  // mounts it already open, so the tap is not swallowed.
+  //
+  // Warming happens on pointer only, never on focus: swapping the button out
+  // from under a keyboard user would drop their focus to the body. On the
+  // keyboard path the click handler mounts it with autoOpen, and Radix moves
+  // focus into the calendar, so focus is carried rather than lost.
+  const [calendar, setCalendar] = useState<'idle' | 'ready' | 'opening'>('idle')
+  const warm = () => setCalendar((c) => (c === 'idle' ? 'ready' : c))
 
   const enquiry: Enquiry = {
-    checkIn,
-    checkOut: invalidRange ? minCheckOut : checkOut,
+    checkIn: range.checkIn,
+    checkOut: range.checkOut,
     guests,
     roomSlug: room || undefined,
     source,
   }
 
   const estimate = estimateTotal(enquiry)
+  const nights = nightsBetween(range.checkIn, range.checkOut)
 
-  const fieldClass =
-    'peer h-full min-h-[3.25rem] w-full appearance-none bg-transparent pt-5 pb-1.5 text-[0.9375rem] text-ink outline-none [color-scheme:light] dark:[color-scheme:dark] sm:min-h-[3.75rem] sm:pt-6 sm:pb-2'
+  const selectClass =
+    'peer h-full min-h-[3.5rem] w-full appearance-none bg-transparent pt-5 pr-6 pb-1.5 text-[0.9375rem] text-ink outline-none sm:min-h-[3.75rem] sm:pt-6 sm:pb-2'
   const labelClass =
     'pointer-events-none absolute top-1.5 left-0 flex items-center gap-1.5 text-[0.625rem] font-medium tracking-[0.14em] text-ink-mute uppercase sm:top-2 sm:text-[0.6875rem]'
 
@@ -76,48 +107,44 @@ export function BookingBar({
         className,
       )}
     >
-      {/* Two rows on a phone, one on a laptop. Four stacked fields ate the
-          entire mobile fold and pushed the primary action below it. */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[calc(var(--radius-card)-2px)] bg-line sm:grid-cols-[1fr_1fr_auto] lg:grid-cols-[1fr_1fr_auto_auto]">
-        {/* Check in */}
-        <div className="relative bg-paper px-4">
-          <label htmlFor={`${uid}-in`} className={labelClass}>
-            <CalendarDays className="size-3" aria-hidden />
-            Check in
-          </label>
-          <input
-            id={`${uid}-in`}
-            type="date"
-            value={checkIn}
-            min={today}
-            onChange={(e) => {
-              setCheckIn(e.target.value)
-              if (nights(e.target.value, checkOut) < 1) {
-                setCheckOut(isoDate(addDays(new Date(`${e.target.value}T00:00:00`), 1)))
-              }
-            }}
-            className={fieldClass}
-          />
+      <div
+        className={cn(
+          // Dates take a full row of their own, guests and room share the row
+          // below. Three stacked full-width fields ate the mobile fold.
+          'grid grid-cols-2 gap-px overflow-hidden rounded-[calc(var(--radius-card)-2px)] bg-line',
+          roomSlug
+            ? 'sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]'
+            : 'lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(0,1fr)]',
+        )}
+      >
+        {/* The static trigger is always in the DOM at its final size. The
+            interactive one renders on top of it once the chunk arrives, so
+            there is no reflow and no dead zone in between. */}
+        <div
+          className={cn(
+            'relative bg-paper',
+            roomSlug ? 'col-span-2 sm:col-span-1' : 'col-span-2 lg:col-span-1',
+          )}
+        >
+          {calendar === 'idle' || !today ? (
+            <DateTrigger
+              checkIn={range.checkIn}
+              checkOut={range.checkOut}
+              onPointerEnter={warm}
+              onTouchStart={warm}
+              onClick={() => setCalendar('opening')}
+            />
+          ) : (
+            <DateRangeField
+              checkIn={range.checkIn}
+              checkOut={range.checkOut}
+              onChange={setRange}
+              autoOpen={calendar === 'opening'}
+            />
+          )}
         </div>
 
-        {/* Check out */}
         <div className="relative bg-paper px-4">
-          <label htmlFor={`${uid}-out`} className={labelClass}>
-            <CalendarDays className="size-3" aria-hidden />
-            Check out
-          </label>
-          <input
-            id={`${uid}-out`}
-            type="date"
-            value={checkOut}
-            min={minCheckOut}
-            onChange={(e) => setCheckOut(e.target.value)}
-            className={fieldClass}
-          />
-        </div>
-
-        {/* Guests */}
-        <div className="relative bg-paper px-4 lg:min-w-[9rem]">
           <label htmlFor={`${uid}-guests`} className={labelClass}>
             <Users className="size-3" aria-hidden />
             Guests
@@ -126,7 +153,7 @@ export function BookingBar({
             id={`${uid}-guests`}
             value={guests}
             onChange={(e) => setGuests(Number(e.target.value))}
-            className={cn(fieldClass, 'pr-6')}
+            className={selectClass}
           >
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <option key={n} value={n}>
@@ -140,9 +167,8 @@ export function BookingBar({
           />
         </div>
 
-        {/* Room, only when not locked to one */}
         {!roomSlug && (
-          <div className="relative bg-paper px-4 lg:min-w-[13rem]">
+          <div className="relative bg-paper px-4">
             <label htmlFor={`${uid}-room`} className={labelClass}>
               Room
             </label>
@@ -150,7 +176,7 @@ export function BookingBar({
               id={`${uid}-room`}
               value={room}
               onChange={(e) => setRoom(e.target.value)}
-              className={cn(fieldClass, 'pr-6')}
+              className={selectClass}
             >
               <option value="">Any room</option>
               {ROOMS.map((r) => (
@@ -168,6 +194,14 @@ export function BookingBar({
       </div>
 
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Constant copy until the guest picks a room, deliberately.
+            An earlier version echoed the chosen dates here, which meant the
+            line grew by a whole row the moment the client resolved today's
+            date, pushing the hero taller and costing 0.127 CLS on a phone. The
+            dates are already stated in the field above; repeating them bought
+            nothing and cost the score. The estimate below only appears after a
+            deliberate room selection, and shifts within 500ms of user input do
+            not count against CLS. */}
         <p className="text-caption text-ink-mute" aria-live="polite">
           {estimate ? (
             <>
@@ -176,7 +210,7 @@ export function BookingBar({
               <span className="hidden sm:inline">{estimate.breakdown}. </span>Nothing is charged now.
             </>
           ) : (
-            <>Pick your dates. Nothing is charged now, and you can cancel free until 24 hours before.</>
+            'Nothing is charged now, and you can cancel free until 24 hours before.'
           )}
         </p>
 
@@ -189,7 +223,7 @@ export function BookingBar({
           onClick={() =>
             track({
               name: 'enquiry_submit',
-              params: { source, room: room || undefined, nights: nights(checkIn, checkOut) },
+              params: { source, room: room || undefined, nights },
             })
           }
         >

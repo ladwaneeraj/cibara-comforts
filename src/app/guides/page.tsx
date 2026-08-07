@@ -2,7 +2,7 @@ import { ArrowUpRight, Clock } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/page-header'
-import { Picture } from '@/components/media/picture'
+import { GuideCover } from '@/components/guides/guide-cover'
 import { Reveal } from '@/components/motion/reveal'
 import { ClosingCta } from '@/components/sections/closing-cta'
 import { Section } from '@/components/ui/section'
@@ -59,11 +59,12 @@ export default function GuidesIndexPage() {
                     href={`/guides/${guide.slug}`}
                     className="flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-paper transition-all duration-500 ease-[var(--ease-swift)] hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
                   >
-                    <Picture
-                      id={guide.image}
-                      alt={guide.imageAlt}
-                      sizes="(min-width: 768px) 45vw, 100vw"
+                    <GuideCover
+                      mark={guide.mark}
+                      photo={guide.photo}
+                      photoAlt={guide.photoAlt}
                       ratio="16 / 9"
+                      compact
                       className="transition-transform duration-[1100ms] ease-[var(--ease-out-soft)] group-hover:scale-[1.04]"
                     />
                     <div className="flex flex-1 flex-col p-7">

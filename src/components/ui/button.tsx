@@ -31,8 +31,11 @@ const button = cva(
         outline:
           'border border-line-strong bg-transparent text-ink hover:border-ink hover:bg-ink/[0.03] dark:hover:bg-paper/[0.04]',
         ghost: 'text-ink hover:bg-ink/[0.05] dark:hover:bg-paper/[0.06]',
+        // For buttons sitting on a surface that is dark in BOTH themes (the
+        // hero, the forest sections). Fixed colours, because `paper` and `ink`
+        // invert and would turn this into a dark pill on a dark ground.
         onDark:
-          'bg-paper/95 text-ink backdrop-blur-sm hover:bg-paper shadow-[var(--shadow-card)]',
+          'bg-cream/95 text-forest-2 backdrop-blur-sm hover:bg-cream shadow-[var(--shadow-card)]',
         onDarkOutline:
           'border border-white/30 text-white backdrop-blur-[2px] hover:border-white/70 hover:bg-white/10',
         // WhatsApp brand green, darkened to 5.2:1 against white text. The

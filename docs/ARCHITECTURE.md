@@ -93,6 +93,22 @@ width; art direction happens in CSS via `object-position` and a `ratio` prop on
 `<Picture>`. This means changing a crop is a one-line edit with no reprocessing,
 and it avoids emitting a separate file set per aspect ratio.
 
+**Sharpness comes from a clarity pass, not from the quality dial.** The
+sources are only 1200 to 1600px, so they were always going to be asked to fill
+more space than they have pixels for. A wide-radius, low-amount unsharp mask
+applied before the resize separates tonal regions and is what makes a soft
+photograph read as having depth; a fine pass after the resize restores edge
+definition. Measured side by side at 828px, that pipeline at AVIF q52 beats the
+old one at q64 comfortably, so the encoder setting stayed modest (54) and the
+bytes stayed honest. The hero carries a per-image override down to 44, because
+it sits behind a 32% scrim and two gradients where fine detail is never seen,
+while being the largest thing on the critical path.
+
+The `.stamp` file records a fingerprint of the grade, the quality settings and
+the width list, so changing any of them invalidates the cache. The first
+version keyed only on source mtime, which meant a grade change silently
+produced nothing.
+
 **The blur placeholder is CSS, not JavaScript.** A 24px WebP is inlined as a
 `background-image` with the average colour underneath. Because it is pure CSS
 it works before hydration and on a failed JS load, which is precisely when a
@@ -261,10 +277,72 @@ considered.
 **Shadows** are warm-tinted rather than neutral grey. A grey shadow on a warm
 paper background is one of the most common tells of an unconsidered theme.
 
+**One rule about the dark theme, learned the hard way.** The `paper` and `ink`
+scales invert between themes, and that is correct for surfaces that also
+invert. The forest sections and the hero do *not* invert: they are dark in both
+themes. Colouring their text with `paper` therefore produced dark text on a
+dark ground in dark mode, and the whole "Who stays here" section became
+unreadable. Any surface that is dark in both themes must use the fixed `cream`
+and `cream-soft` tokens, never the paper scale. The `onDark` button variant
+follows the same rule.
+
 **Dark mode** is not an inverted light theme. It is the property at night: the
 forest green that is on the walls, warm brass lamplight, cream linen. That is
 the only reason it is here at all; a generic grey dark theme would have been a
 maintenance cost with no brand return.
+
+---
+
+## 8b. The date field
+
+One field for the whole stay, not two date boxes. Two separate boxes make a
+guest reason about check-in and check-out as unrelated facts; a range field
+matches how people describe a stay and surfaces the night count, which is the
+number that drives the price.
+
+Hand-rolled rather than installed. The accessible React date pickers worth
+using cost 25 to 45 KB, and this is roughly 200 lines against the Radix Popover
+that handles focus trapping and outside clicks. It carries `role="grid"`, a
+roaming tabindex (one tab stop, arrows move within), PageUp/PageDown by month,
+Home and End across the week, full spoken dates per cell, and a live region on
+the summary.
+
+Three things about how it loads, each of which was a measured mistake first:
+
+1. **The trigger is rendered statically by the booking bar**, at final size,
+   from the same `DateTrigger` component the calendar later uses. An
+   approximate grey skeleton cost 0.055 CLS when it swapped, and the shift
+   reset the LCP measurement, making the lazy loading a net loss.
+2. **The chunk is fetched on intent, not on hydration.** A plain `dynamic()`
+   still fires its import during hydration, competing with the homepage's
+   critical path. Hover preloads, tap mounts it already open.
+3. **Today's date is resolved client-side** via `useClientToday()`. This is a
+   static export: the HTML is generated on build day, so rendering "today"
+   during SSR produced a hydration mismatch (React #418) on every day after
+   deploy. The server renders "Choose your dates" and the client fills it in.
+   The trigger and the status line beneath it are both fixed-height so that
+   fill-in cannot reflow the hero, which is what a first attempt did to the
+   tune of 0.127 CLS.
+
+---
+
+## 8c. Guide covers
+
+The guides are about the temple, the road to Hampi, the town and the trains.
+There is no photograph of any of those, and heading a Hampi guide with a
+photograph of a hotel bed tells the reader the article is about one thing and
+shows them another.
+
+The options were a stock photograph (licensing, plus the over-claiming problem
+the rest of the site avoids), an AI-generated image of a real identifiable
+heritage building (a fabrication, and the exact trust failure this rebuild
+removed from the old site), or drawn marks. Drawn marks won.
+
+They live in `content/guide-marks.ts` as plain SVG strings with no font
+dependency, so the same source feeds both the React cover and the OpenGraph
+card generated by the image script. Setting `photo` on a guide in
+`content/guides.ts` overrides the mark everywhere: cover, card and social
+image. That is the intended upgrade path once real photographs exist.
 
 ---
 
@@ -318,10 +396,13 @@ Pages does.
 | | Performance | Accessibility | Best practices | SEO |
 |---|---|---|---|---|
 | Desktop | **100** | **100** | **100** | **100** |
-| Mobile | 84–92 | **100** | **100** | **100** |
+| Mobile | 83–87 | **100** | **100** | **100** |
 
-Core Web Vitals: CLS **0**, TBT 140–220 ms, FCP 1.2–1.4 s, LCP 3.0–3.9 s on
-Lighthouse's simulated slow 4G with 4× CPU throttling.
+Core Web Vitals: CLS **0**, TBT 120–180 ms, FCP 1.2–1.4 s, LCP 2.8–4.1 s on
+Lighthouse's simulated slow 4G with 4× CPU throttling. The guide pages, which
+carry far fewer client components, score 97 to 98 on mobile, which is a useful
+control: it confirms the homepage gap is hydration cost rather than anything
+structural.
 
 The mobile performance number is the one weak spot and it is worth being
 precise about why. It is not network: the document is 49 KB gzipped, the hero
