@@ -1,0 +1,410 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode. The toggle writes `class="dark"` on <html>; the
+   inline script in layout.tsx sets it before paint so there is no flash. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Design tokens
+   ---------------------------------------------------------------------------
+   The palette is sampled from the property itself rather than invented: the
+   deep green is the wainscot in the Premium rooms, the brass is the cane wall
+   discs and the lamp glow, the sand is the cement floor tile, the terracotta
+   is the kantha textile. Sampling from the real building is what keeps the
+   site from over-promising against its own photographs.
+--------------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-paper: #fbf9f5;
+  --color-paper-2: #f4efe6;
+  --color-paper-3: #ebe4d7;
+
+  /* Text */
+  --color-ink: #171614;
+  --color-ink-soft: #46433c;
+  /* 5.5:1 on paper, 5.0:1 on paper-2, 4.6:1 on paper-3. All clear WCAG AA
+     for body text, which the previous #7b756a did not. */
+  --color-ink-mute: #6b6559;
+
+  /* Structure */
+  --color-line: #e3dccd;
+  --color-line-strong: #cfc5b1;
+
+  /* Brand */
+  --color-forest: #23392c;
+  --color-forest-2: #16241c;
+  --color-forest-3: #2f4b3a;
+  --color-brass: #a8845a;
+  --color-brass-2: #c9a97c;
+  --color-brass-3: #6f5636;
+  --color-terracotta: #9c4b32;
+
+  /* Semantic */
+  --color-positive: #3f6b4a;
+
+  /* Type */
+  --font-display: var(--font-fraunces), 'Iowan Old Style', Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-kannada: 'Noto Sans Kannada', 'Nirmala UI', 'Tunga', sans-serif;
+
+  /* Fluid type scale. Min values are tuned for a 360px Android viewport,
+     which is the modal device for this property's guests. */
+  --text-micro: 0.6875rem;
+  --text-caption: 0.8125rem;
+  --text-body: clamp(1rem, 0.97rem + 0.14vw, 1.0625rem);
+  --text-body-lg: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+  --text-lead: clamp(1.1875rem, 1.08rem + 0.5vw, 1.4375rem);
+  --text-h3: clamp(1.25rem, 1.11rem + 0.62vw, 1.625rem);
+  --text-h2: clamp(1.75rem, 1.36rem + 1.7vw, 2.75rem);
+  --text-h1: clamp(2.25rem, 1.55rem + 3.1vw, 4rem);
+  --text-display: clamp(2.75rem, 1.35rem + 6.2vw, 6.5rem);
+
+  /* Radii. Photography stays nearly square; containers get the softness. */
+  --radius-image: 3px;
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+
+  /* Shadows: warm-tinted, wide, low opacity. A neutral grey shadow on a warm
+     paper background is the single most common tell of a template. */
+  --shadow-subtle: 0 1px 2px rgb(35 25 10 / 0.04), 0 2px 8px rgb(35 25 10 / 0.03);
+  --shadow-card: 0 2px 4px rgb(35 25 10 / 0.03), 0 12px 32px -8px rgb(35 25 10 / 0.08);
+  --shadow-lift: 0 4px 8px rgb(35 25 10 / 0.04), 0 24px 56px -12px rgb(35 25 10 / 0.14);
+
+  /* Motion. One easing for entrances, one for exits, one spring-ish for UI. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-soft: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-swift: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Layout */
+  --spacing-gutter: clamp(1.25rem, 0.9rem + 1.6vw, 2.5rem);
+  --spacing-section: clamp(4.5rem, 3rem + 6vw, 9rem);
+  --container-reading: 68ch;
+}
+
+/* Dark theme. The palette inverts to the forest, which is the room at night:
+   dark green walls, warm brass lamplight, cream linen. It is the same hotel,
+   not a different brand. */
+.dark {
+  --color-paper: #121914;
+  --color-paper-2: #182119;
+  --color-paper-3: #1f2b22;
+
+  --color-ink: #f2ede2;
+  --color-ink-soft: #c8c2b4;
+  /* 4.95:1 or better against all three dark surfaces. */
+  --color-ink-mute: #9c9587;
+
+  --color-line: #2a3730;
+  --color-line-strong: #3d4d43;
+
+  --color-forest: #0e150f;
+  --color-forest-2: #0a0f0b;
+  --color-forest-3: #1b2a20;
+  --color-brass: #c9a97c;
+  --color-brass-2: #e0c79e;
+  --color-brass-3: #a8845a;
+  --color-terracotta: #c96b4c;
+
+  --shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-card: 0 2px 4px rgb(0 0 0 / 0.2), 0 12px 32px -8px rgb(0 0 0 / 0.45);
+  --shadow-lift: 0 4px 8px rgb(0 0 0 / 0.25), 0 24px 56px -12px rgb(0 0 0 / 0.6);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-line);
+  }
+
+  html {
+    /* Lenis drives scrolling on pointer-fine devices; native smooth scroll is
+       kept as the fallback for in-page anchors when Lenis is inactive. */
+    scroll-behavior: smooth;
+    /* Sticky header height plus breathing room, so anchor targets are not
+       hidden underneath it. */
+    scroll-padding-top: 6.5rem;
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink-soft);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.65;
+    font-feature-settings: 'kern', 'liga', 'calt';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, branded focus ring. Never removed, only restyled. */
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--color-brass);
+    color: var(--color-paper);
+  }
+
+  /* Kannada strings sit inline with Latin text and need their own stack. */
+  :lang(kn) {
+    font-family: var(--font-kannada);
+    letter-spacing: 0;
+  }
+
+  /* Tabular numerals wherever prices are compared side by side. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities
+--------------------------------------------------------------------------- */
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 88rem;
+  padding-inline: var(--spacing-gutter);
+}
+
+@utility container-narrow {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 56rem;
+  padding-inline: var(--spacing-gutter);
+}
+
+/** Small uppercase label used above section headings. */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-brass-3);
+}
+
+.dark .eyebrow {
+  color: var(--color-brass-2);
+}
+
+/** Hairline rule that fades out, used to separate editorial blocks. */
+@utility rule-fade {
+  height: 1px;
+  background: linear-gradient(to right, var(--color-line-strong), transparent);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion primitives
+   ---------------------------------------------------------------------------
+   Scroll reveals are CSS-driven where the browser supports animation-timeline,
+   which keeps them off the main thread and costs zero JavaScript. The Reveal
+   component falls back to an IntersectionObserver only when it must.
+--------------------------------------------------------------------------- */
+/* Path 1: scroll-driven, compositor only, zero JavaScript. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+/* Path 2: the IntersectionObserver fallback. Scoped to .reveal-js, which the
+   inline script only adds once it is actually running, so content is never
+   hidden by CSS that nothing will ever un-hide. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-js .reveal {
+    opacity: 0;
+    transform: translateY(1.75rem);
+    transition:
+      opacity 700ms var(--ease-out-soft),
+      transform 700ms var(--ease-out-soft);
+  }
+
+  .reveal-js .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Magnetic buttons. The handler in components/motion/magnetic.tsx only writes
+   --mx and --my; the transition and the transform live here so the whole
+   effect stays on the compositor. */
+.magnetic {
+  display: inline-flex;
+  transform: translate3d(var(--mx, 0), var(--my, 0), 0);
+  transition: transform 420ms var(--ease-swift);
+}
+
+/* Display heading lines sliding up from behind their mask. Pure CSS so the
+   heading is painted and animated without waiting for hydration. `both` holds
+   the start frame during the stagger delay. */
+@keyframes line-up {
+  from {
+    transform: translateY(104%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.line-reveal {
+  animation: line-up 900ms var(--ease-out-soft) both;
+  will-change: transform;
+}
+
+/* Slow drift applied to hero photography. 18s, 1.06x scale: enough to feel
+   alive, small enough that nobody consciously notices it. */
+@keyframes ken-burns {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-1%, -0.8%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ken-burns {
+    animation: ken-burns 18s var(--ease-out-soft) forwards;
+  }
+}
+
+/* Radix Accordion. The CSS variable is set by Radix on the content element. */
+@keyframes acc-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes acc-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Mobile navigation sheet. */
+@keyframes sheet-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* The global escape hatch. Anything that animates must survive this. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Cross-document view transitions between routes. Progressive enhancement:
+   browsers without support simply cut. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-out 180ms var(--ease-in-soft) both;
+  }
+  ::view-transition-new(root) {
+    animation: vt-in 320ms var(--ease-out-soft) both;
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+/* Print: guests do print directions and booking confirmations. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

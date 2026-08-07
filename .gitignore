@@ -1,0 +1,35 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Build output
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment. .env.example is committed; real values are not.
+.env
+.env*.local
+
+# Generated image derivatives carry a stamp file to make regeneration
+# incremental. The derivatives themselves ARE committed, deliberately: they are
+# deterministic, they change rarely, and committing them keeps CI to a few
+# seconds. See docs/ARCHITECTURE.md.
+public/media/**/.stamp
+
+# Editor and OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+.npm
+
+# Vercel, if the site ever moves there
+.vercel
