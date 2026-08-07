@@ -33,3 +33,7 @@ yarn-error.log*
 
 # Vercel, if the site ever moves there
 .vercel
+
+# Scratch folder used when files had to be moved rather than deleted.
+# Safe to delete the whole folder.
+_to_delete/
