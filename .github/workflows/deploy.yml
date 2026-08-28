@@ -62,8 +62,22 @@ jobs:
       # the content files, then the static export into out/.
       - name: Build
         run: npm run build
+        # Every NEXT_PUBLIC_* value is inlined into the client bundle at build
+        # time and is readable in page source, so these are repository
+        # *variables*, not secrets. Set them under
+        # Settings > Secrets and variables > Actions > Variables.
+        # A variable that is unset simply disables that tag; see lib/analytics.ts.
+        env:
+          NEXT_PUBLIC_GOOGLE_ADS_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_ADS_ID }}
+          NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL: ${{ vars.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL }}
+          NEXT_PUBLIC_GA4_ID: ${{ vars.NEXT_PUBLIC_GA4_ID }}
+          NEXT_PUBLIC_CLARITY_ID: ${{ vars.NEXT_PUBLIC_CLARITY_ID }}
+          NEXT_PUBLIC_META_PIXEL_ID: ${{ vars.NEXT_PUBLIC_META_PIXEL_ID }}
 
       - name: Verify the export
+        env:
+          NEXT_PUBLIC_GOOGLE_ADS_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_ADS_ID }}
+          NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL: ${{ vars.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL }}
         run: |
           test -f out/index.html
           test -f out/CNAME
@@ -71,6 +85,26 @@ jobs:
           test -f out/sitemap.xml
           test -f out/robots.txt
           test -f out/llms.txt
+
+          # Conversion tracking is checked here rather than trusted, because
+          # the failure mode is silent: an unset repository variable ships a
+          # site that looks fine and reports nothing, while the campaign keeps
+          # spending. A red build is the cheaper way to find out.
+          for var in NEXT_PUBLIC_GOOGLE_ADS_ID NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var is not set. Add it under Settings > Secrets and variables > Actions > Variables."
+              exit 1
+            fi
+          done
+          # The id and label are inlined as two separate string literals and
+          # only joined at runtime, so grep for each one rather than the
+          # concatenated send_to value.
+          for value in "$NEXT_PUBLIC_GOOGLE_ADS_ID" "$NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL"; do
+            grep -rqF "$value" out/ || {
+              echo "::error::'$value' is missing from the export; conversion tracking would not ship."
+              exit 1
+            }
+          done
 
       - uses: actions/configure-pages@v5
 

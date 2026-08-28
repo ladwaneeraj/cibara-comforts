@@ -20,6 +20,9 @@ export const ANALYTICS = {
   ga4: process.env.NEXT_PUBLIC_GA4_ID,
   clarity: process.env.NEXT_PUBLIC_CLARITY_ID,
   metaPixel: process.env.NEXT_PUBLIC_META_PIXEL_ID,
+  googleAds: process.env.NEXT_PUBLIC_GOOGLE_ADS_ID,
+  /** Conversion label for the single "Contact" action in Google Ads. */
+  googleAdsLeadLabel: process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL,
 } as const
 
 export const HAS_ANALYTICS = Object.values(ANALYTICS).some(Boolean)
@@ -47,6 +50,49 @@ declare global {
   }
 }
 
+/** The events that represent a real enquiry, and so a Google Ads conversion. */
+const LEAD_EVENTS = new Set<AnalyticsEvent['name']>([
+  'whatsapp_click',
+  'call_click',
+  'enquiry_submit',
+])
+
+/**
+ * Installs the gtag command queue.
+ *
+ * This is the whole reason conversions survive the deferred loader. gtag.js
+ * replays whatever is already sitting in `window.dataLayer` when it finishes
+ * loading, so a command queued before the network request completes is not
+ * lost. Without this, the click that boots the tags fires `track()` while
+ * `window.gtag` is still undefined, and that conversion disappears. For a
+ * visitor who lands and taps the sticky WhatsApp dock without scrolling
+ * first, that is the only conversion they were ever going to produce.
+ *
+ * Cheap and idempotent: no network, a few objects, safe to call on every
+ * event. `js` and `config` are queued here rather than in the loader so that
+ * they always precede any event, whatever order things mount in.
+ */
+export function ensureGtag(): void {
+  if (typeof window === 'undefined' || window.gtag) return
+
+  window.dataLayer = window.dataLayer ?? []
+  // Must stay a real function using `arguments`. gtag.js inspects the queued
+  // entries as `arguments` objects; an arrow with rest params pushes a plain
+  // array, which it silently ignores.
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments)
+  }
+
+  window.gtag('js', new Date())
+  if (ANALYTICS.ga4) {
+    window.gtag('config', ANALYTICS.ga4, { send_page_view: true, transport_type: 'beacon' })
+  }
+  if (ANALYTICS.googleAds) {
+    window.gtag('config', ANALYTICS.googleAds)
+  }
+}
+
 /**
  * Fires an event to whichever tags happen to be loaded.
  * Safe to call before the tags boot: gtag's queue absorbs early calls, and the
@@ -55,8 +101,19 @@ declare global {
 export function track(event: AnalyticsEvent): void {
   if (typeof window === 'undefined') return
 
+  ensureGtag()
+
   window.dataLayer?.push({ event: event.name, ...event.params })
   window.gtag?.('event', event.name, event.params)
+
+  // Google Ads conversion. Deliberately a separate call: `send_to` addresses
+  // the Ads account and conversion label, and is what smart bidding reads.
+  // The generic event above is for GA4 reporting and does not reach Ads.
+  if (LEAD_EVENTS.has(event.name) && ANALYTICS.googleAds && ANALYTICS.googleAdsLeadLabel) {
+    window.gtag?.('event', 'conversion', {
+      send_to: `${ANALYTICS.googleAds}/${ANALYTICS.googleAdsLeadLabel}`,
+    })
+  }
 
   // Map the two events that matter to Meta's standard event names so ad
   // optimisation has something to bid against.

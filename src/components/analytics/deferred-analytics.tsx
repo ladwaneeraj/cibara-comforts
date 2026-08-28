@@ -2,7 +2,7 @@
 
 import Script from 'next/script'
 import { useEffect, useState } from 'react'
-import { ANALYTICS } from '@/lib/analytics'
+import { ANALYTICS, ensureGtag, HAS_ANALYTICS } from '@/lib/analytics'
 
 /**
  * Analytics loader.
@@ -22,9 +22,16 @@ import { ANALYTICS } from '@/lib/analytics'
 export function DeferredAnalytics() {
   const [boot, setBoot] = useState(false)
 
+  // Install the gtag command queue at hydration, long before anyone can click.
+  // Deferring the *network* load is the performance win; deferring the queue as
+  // well would drop the first conversion. See ensureGtag in lib/analytics.ts.
+  useEffect(() => {
+    ensureGtag()
+  }, [])
+
   useEffect(() => {
     if (boot) return
-    if (!ANALYTICS.ga4 && !ANALYTICS.clarity && !ANALYTICS.metaPixel) return
+    if (!HAS_ANALYTICS) return
 
     let done = false
     const start = () => {
@@ -72,21 +79,19 @@ export function DeferredAnalytics() {
 
   if (!boot) return null
 
+  // One gtag.js load serves both GA4 and Google Ads: the library is keyed by
+  // the id in the URL but replays every `config` already sitting in the queue,
+  // and ensureGtag has queued both. Either id can therefore front the request.
+  const gtagId = ANALYTICS.ga4 ?? ANALYTICS.googleAds
+
   return (
     <>
-      {ANALYTICS.ga4 && (
-        <>
-          <Script
-            id="ga4-src"
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${ANALYTICS.ga4}`}
-          />
-          <Script id="ga4-init" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
-window.gtag=gtag;gtag('js',new Date());
-gtag('config','${ANALYTICS.ga4}',{send_page_view:true,transport_type:'beacon'});`}
-          </Script>
-        </>
+      {gtagId && (
+        <Script
+          id="gtag-src"
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${gtagId}`}
+        />
       )}
 
       {ANALYTICS.clarity && (
