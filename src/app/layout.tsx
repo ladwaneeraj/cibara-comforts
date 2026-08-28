@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { DeferredAnalytics } from '@/components/analytics/deferred-analytics'
+import { VisitNotification } from '@/components/analytics/visit-notification'
 import { StickyDock } from '@/components/booking/sticky-dock'
 import { Footer } from '@/components/layout/footer'
 import { Header } from '@/components/layout/header'
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Footer />
         <StickyDock />
         <DeferredAnalytics />
+        <VisitNotification />
       </body>
     </html>
   )

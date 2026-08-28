@@ -136,7 +136,7 @@ Content-Security-Policy:
   img-src 'self' data: https://www.google-analytics.com https://www.facebook.com https://maps.gstatic.com https://*.googleapis.com;
   font-src 'self';
   frame-src https://maps.google.com https://www.google.com;
-  connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://connect.facebook.net;
+  connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://connect.facebook.net https://googleads.g.doubleclick.net https://www.google.com https://ntfy.sh https://ipapi.co;
   form-action 'none';
   base-uri 'self';
   frame-ancestors 'none';
