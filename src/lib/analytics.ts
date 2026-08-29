@@ -16,13 +16,28 @@
  * is simply never loaded.
  */
 
+/**
+ * Normalises an unset id to undefined.
+ *
+ * GitHub Actions substitutes a repository variable that does not exist as an
+ * EMPTY STRING, not as an absent value, so `process.env.NEXT_PUBLIC_GA4_ID`
+ * arrives as '' rather than undefined. An empty string is not nullish, so every
+ * `??` downstream happily selects it and the fallback never runs. That is not
+ * hypothetical: it shipped once and silently stopped gtag.js from loading at
+ * all, because the script src resolved to ''. Normalise here, once, so the rest
+ * of the file can use either `??` or `||` without thinking about it.
+ */
+function id(value: string | undefined): string | undefined {
+  return value ? value : undefined
+}
+
 export const ANALYTICS = {
-  ga4: process.env.NEXT_PUBLIC_GA4_ID,
-  clarity: process.env.NEXT_PUBLIC_CLARITY_ID,
-  metaPixel: process.env.NEXT_PUBLIC_META_PIXEL_ID,
-  googleAds: process.env.NEXT_PUBLIC_GOOGLE_ADS_ID,
+  ga4: id(process.env.NEXT_PUBLIC_GA4_ID),
+  clarity: id(process.env.NEXT_PUBLIC_CLARITY_ID),
+  metaPixel: id(process.env.NEXT_PUBLIC_META_PIXEL_ID),
+  googleAds: id(process.env.NEXT_PUBLIC_GOOGLE_ADS_ID),
   /** Conversion label for the single "Contact" action in Google Ads. */
-  googleAdsLeadLabel: process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL,
+  googleAdsLeadLabel: id(process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL),
 } as const
 
 export const HAS_ANALYTICS = Object.values(ANALYTICS).some(Boolean)

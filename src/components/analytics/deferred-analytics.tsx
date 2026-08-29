@@ -82,7 +82,9 @@ export function DeferredAnalytics() {
   // One gtag.js load serves both GA4 and Google Ads: the library is keyed by
   // the id in the URL but replays every `config` already sitting in the queue,
   // and ensureGtag has queued both. Either id can therefore front the request.
-  const gtagId = ANALYTICS.ga4 ?? ANALYTICS.googleAds
+  // `||` rather than `??` on purpose: belt and braces against an id that
+  // slipped through as an empty string. See id() in lib/analytics.ts.
+  const gtagId = ANALYTICS.ga4 || ANALYTICS.googleAds
 
   return (
     <>
