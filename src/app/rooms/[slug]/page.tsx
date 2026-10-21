@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BookingBar } from '@/components/booking/booking-bar'
+import { OnlineBooking } from '@/components/booking/online-booking'
 import { PageHeader } from '@/components/layout/page-header'
 import { Picture } from '@/components/media/picture'
 import { Reveal } from '@/components/motion/reveal'
@@ -15,6 +16,7 @@ import { HOTEL } from '@/content/hotel'
 import { NEARBY } from '@/content/nearby'
 import { formatINR, ROOMS, ROOMS_BY_SLUG } from '@/content/rooms'
 import { breadcrumbNode, faqNode, jsonLdGraph, roomNode } from '@/lib/schema'
+import { onlineCategory } from '@/lib/booking-api'
 import { pageMetadata } from '@/lib/seo'
 
 /** One static route per room. `dynamicParams` is implicitly false on export. */
@@ -77,6 +79,27 @@ export default async function RoomPage({ params }: Props) {
       >
         <BookingBar roomSlug={room.slug} source={`room_${room.slug}`} variant="inline" className="max-w-3xl" />
       </PageHeader>
+
+      {/* Online booking. Only the three rooms the ERP can sell; the others keep
+          the WhatsApp enquiry in the header above. The widget gates itself on
+          the ERP's kill-switch and falls back to WhatsApp when it is off. */}
+      {onlineCategory(room.slug) && (
+        <Section tone="sand" id="book-online" labelledBy="book-online-heading">
+          <div className="container-page">
+            <div className="max-w-3xl">
+              <h2 id="book-online-heading" className="text-[length:var(--text-h2)]">
+                Book the {room.shortName} online
+              </h2>
+              <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-ink-soft">
+                Choose your dates, see the exact price and pay online. We confirm your booking on WhatsApp.
+              </p>
+              <div className="mt-8">
+                <OnlineBooking roomSlug={room.slug} source={`room_${room.slug}_online`} />
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* Photography */}
       <Section tone="paper" className="!pb-0">

@@ -61,6 +61,21 @@ NEXT_PUBLIC_META_PIXEL_ID=000000000000000
 Because this is a static export, these are inlined at build time. Changing one
 requires a rebuild, not just a redeploy.
 
+### Online booking environment variable
+
+```
+NEXT_PUBLIC_API_BASE=https://erp.example.com
+```
+
+The base URL of the ERP's public `/web` API, no trailing slash. Add it to
+`.env.local` for development and as a repository **variable** (not a secret; it
+is readable in the client bundle) for CI. The booking widget on the three
+bookable room pages asks `GET /web/config` whether online booking is on and
+shows the pay flow only when the ERP says so. If this is unset, the ERP is
+unreachable, or the ERP's kill-switch is off, guests see "Online booking
+paused" and the usual WhatsApp enquiry. The ERP's CORS allow-list must include
+the site's origin. Like the others, it is inlined at build time.
+
 Recommendation: start with GA4 only. Add Clarity for a week when you want to
 watch session recordings, then remove it. Add the Meta Pixel only while you are
 actually running ads.
@@ -131,17 +146,21 @@ Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
 Content-Security-Policy:
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms https://connect.facebook.net;
+  script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms https://connect.facebook.net https://checkout.razorpay.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https://www.google-analytics.com https://www.facebook.com https://maps.gstatic.com https://*.googleapis.com;
   font-src 'self';
-  frame-src https://maps.google.com https://www.google.com;
-  connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://connect.facebook.net https://googleads.g.doubleclick.net https://www.google.com https://ntfy.sh https://ipapi.co;
+  frame-src https://maps.google.com https://www.google.com https://api.razorpay.com https://checkout.razorpay.com;
+  connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://connect.facebook.net https://googleads.g.doubleclick.net https://www.google.com https://ntfy.sh https://ipapi.co https://lumberjack.razorpay.com <your NEXT_PUBLIC_API_BASE origin>;
   form-action 'none';
   base-uri 'self';
   frame-ancestors 'none';
   upgrade-insecure-requests;
 ```
+
+The `razorpay.com` sources and the ERP origin in `connect-src` are needed by
+online booking (Checkout.js and its payment frame, and the `/web` API calls).
+Without them the browser blocks the pay step if this CSP is applied.
 
 `'unsafe-inline'` in `script-src` is required by the two inline bootstrap
 scripts (theme and scroll reveal) and by the analytics loaders. Removing it

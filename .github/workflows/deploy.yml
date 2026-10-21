@@ -74,6 +74,9 @@ jobs:
           NEXT_PUBLIC_CLARITY_ID: ${{ vars.NEXT_PUBLIC_CLARITY_ID }}
           NEXT_PUBLIC_META_PIXEL_ID: ${{ vars.NEXT_PUBLIC_META_PIXEL_ID }}
           NEXT_PUBLIC_NTFY_TOPIC: ${{ vars.NEXT_PUBLIC_NTFY_TOPIC }}
+          # ERP base URL for online booking. Unset means the widget shows
+          # "Online booking paused" and the WhatsApp enquiry instead.
+          NEXT_PUBLIC_API_BASE: ${{ vars.NEXT_PUBLIC_API_BASE }}
 
       - name: Verify the export
         env:
