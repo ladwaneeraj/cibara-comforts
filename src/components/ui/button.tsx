@@ -24,8 +24,12 @@ const button = cva(
   {
     variants: {
       variant: {
+        // hover darkens in light mode (ink→forest) but, in dark mode, the button
+        // is already light — forest-green would blend into dark surfaces, so it
+        // shifts to a lighter ink instead. See the onDark variant for always-dark
+        // surfaces.
         primary:
-          'bg-ink text-paper hover:bg-forest shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)]',
+          'bg-ink text-paper hover:bg-forest dark:hover:bg-ink-soft shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)]',
         brass:
           'bg-brass text-white hover:bg-brass-3 shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)] dark:text-forest-2 dark:hover:bg-brass-2',
         outline:

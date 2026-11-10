@@ -84,7 +84,7 @@ export default async function RoomPage({ params }: Props) {
           the WhatsApp enquiry in the header above. The widget gates itself on
           the ERP's kill-switch and falls back to WhatsApp when it is off. */}
       {onlineCategory(room.slug) && (
-        <Section tone="sand" id="book-online" labelledBy="book-online-heading">
+        <Section tone="sand" id="book-online" labelledBy="book-online-heading" className="scroll-mt-24">
           <div className="container-page">
             <div className="max-w-3xl">
               <h2 id="book-online-heading" className="text-[length:var(--text-h2)]">
@@ -246,8 +246,8 @@ export default async function RoomPage({ params }: Props) {
                     <Row label="Bathroom" value={room.bathroom} />
                     <Row label="Cooling" value={room.ac ? 'Split AC and fan' : 'Ceiling fan'} />
                     {room.sizeSqft && <Row label="Approx. size" value={`${room.sizeSqft} sq ft`} />}
-                    <Row label="Check in" value={`${HOTEL.checkIn}, 24h reception`} />
-                    <Row label="Check out" value={HOTEL.checkOut} />
+                    <Row label="Check in" value="Any time — 24h reception" />
+                    <Row label="Check out" value="24 hours after check-in" />
                   </dl>
 
                   <p className="mt-6 border-t border-line pt-6 text-[0.8125rem] leading-relaxed text-ink-mute">

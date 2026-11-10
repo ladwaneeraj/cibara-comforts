@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Clock, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
+import { ArrowRight, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { WhatsAppAction, WhatsAppTextLink } from '@/components/booking/actions'
@@ -96,7 +96,10 @@ export function OnlineBookingForm({
   const checkOut = range?.checkOut ?? (today ? addDaysISO(today, 2) : '')
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0
 
-  const [time, setTime] = useState<string>(HOTEL.checkIn)
+  // 24-hour policy: the guest checks in any time and the stay runs 24h per night,
+  // so there is no arrival-time field. The server still needs a check_in_time for
+  // the availability window, so we send the hotel's reference time by default.
+  const time = HOTEL.checkIn
   const [guestsChosen, setGuestsChosen] = useState('2')
   const guests = Math.min(Number(guestsChosen), room.maxGuests)
 
@@ -373,7 +376,7 @@ export function OnlineBookingForm({
             <span className={cn(label, 'mb-2')}>Your stay</span>
             <DateRangeField checkIn={checkIn} checkOut={checkOut} onChange={setRange} />
           </div>
-          <div className={selectBox}>
+          <div className={cn(selectBox, 'sm:col-span-2')}>
             <SelectField
               label="Guests"
               icon={Users}
@@ -382,31 +385,14 @@ export function OnlineBookingForm({
               onChange={setGuestsChosen}
             />
           </div>
-          <div>
-            <label htmlFor={`${uid}-time`} className={cn(label, 'flex items-center gap-1.5')}>
-              <Clock className="size-3" aria-hidden />
-              Arrival time
-            </label>
-            <input
-              id={`${uid}-time`}
-              type="time"
-              required
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className={cn(field, 'mt-2')}
-            />
-          </div>
         </div>
 
         <p className="mt-2 text-[0.75rem] leading-relaxed text-ink-mute">
-          Checkout is at your arrival time on the last day (default {HOTEL.checkIn}).
+          Check in any time — each night is a full 24 hours, so you check out at the same time on your
+          last day.
           {stay && (
             <>
-              {' '}You check out{' '}
-              <span className="text-ink">
-                {formatShort(checkOut)} at {time}
-              </span>
-              .
+              {' '}You check out on <span className="text-ink">{formatShort(checkOut)}</span>.
             </>
           )}
         </p>

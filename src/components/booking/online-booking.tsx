@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { WhatsAppAction } from '@/components/booking/actions'
 import { useBookingGate } from '@/components/booking/use-booking-gate'
 
@@ -42,6 +42,21 @@ export function OnlineBooking({ roomSlug, source }: { roomSlug?: string; source:
   const [closed, setClosed] = useState(false)
   const pause = useCallback(() => setClosed(true), [])
   const gate = closed ? 'paused' : fetched
+
+  // When the guest taps "Book online" (a #book-online anchor) the native scroll
+  // fires before this form has lazy-loaded, so it undershoots as the content
+  // grows. Once the form is ready, re-align to the section — once, and only if
+  // they actually navigated here.
+  const aligned = useRef(false)
+  useEffect(() => {
+    if (gate !== 'open' || aligned.current) return
+    if (typeof window !== 'undefined' && window.location.hash === '#book-online') {
+      aligned.current = true
+      requestAnimationFrame(() =>
+        document.getElementById('book-online')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      )
+    }
+  }, [gate])
 
   if (gate === 'checking') {
     // Reserve roughly the height of the paused panel so the page below does
