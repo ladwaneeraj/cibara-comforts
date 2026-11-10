@@ -8,6 +8,7 @@ import { Location } from '@/components/sections/location'
 import { Manifesto } from '@/components/sections/manifesto'
 import { Reviews } from '@/components/sections/reviews'
 import { RoomsShowcase } from '@/components/sections/rooms-showcase'
+import { RoomTiers } from '@/components/sections/room-tiers'
 import { GalleryTeaser } from '@/components/sections/gallery-teaser'
 import { TrustStrip } from '@/components/sections/trust-strip'
 import { HOTEL } from '@/content/hotel'
@@ -42,6 +43,7 @@ export default function HomePage() {
       <TrustStrip />
       <Manifesto />
       <RoomsShowcase />
+      <RoomTiers />
       <AmenitiesGrid />
       <Audiences />
       <GalleryTeaser />

@@ -1,9 +1,9 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { WhatsAppAction } from '@/components/booking/actions'
-import { bookingApi } from '@/lib/booking-api'
+import { useBookingGate } from '@/components/booking/use-booking-gate'
 
 /**
  * The form, its Radix listbox and the date logic are fetched only when the ERP
@@ -14,8 +14,6 @@ const OnlineBookingForm = dynamic(
   () => import('@/components/booking/online-booking-form').then((m) => m.OnlineBookingForm),
   { ssr: false, loading: () => null },
 )
-
-type Gate = 'checking' | 'open' | 'paused'
 
 /**
  * Online booking, behind the ERP's kill-switch.
@@ -37,21 +35,13 @@ type Gate = 'checking' | 'open' | 'paused'
  * replacement.
  */
 export function OnlineBooking({ roomSlug, source }: { roomSlug?: string; source: string }) {
-  const [gate, setGate] = useState<Gate>('checking')
-  const pause = useCallback(() => setGate('paused'), [])
-
-  useEffect(() => {
-    const ctrl = new AbortController()
-    bookingApi
-      .config(ctrl.signal)
-      .then((res) => (res.ok && res.data.online_bookings_enabled === true ? 'open' : 'paused'))
-      // Whatever goes wrong, the answer is "paused", never a hung spinner.
-      .catch((): Gate => 'paused')
-      .then((next) => {
-        if (!ctrl.signal.aborted) setGate(next)
-      })
-    return () => ctrl.abort()
-  }, [])
+  // The flag comes from the shared gate (one /web/config for the whole page).
+  // `closed` is the local override for a switch flipped while the guest has the
+  // page open: the form's hold/order 403s and calls onDisabled.
+  const fetched = useBookingGate()
+  const [closed, setClosed] = useState(false)
+  const pause = useCallback(() => setClosed(true), [])
+  const gate = closed ? 'paused' : fetched
 
   if (gate === 'checking') {
     // Reserve roughly the height of the paused panel so the page below does

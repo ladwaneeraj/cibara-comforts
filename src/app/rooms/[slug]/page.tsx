@@ -93,6 +93,21 @@ export default async function RoomPage({ params }: Props) {
               <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-ink-soft">
                 Choose your dates, see the exact price and pay online. We confirm your booking on WhatsApp.
               </p>
+              {/* Honest upgrade nudge on the non-AC bookable rooms: real price
+                  gap to the Premium AC, framed as value, never pressure. */}
+              {!room.ac && ROOMS_BY_SLUG['premium-ac-room'] ? (
+                <p className="mt-5 max-w-[56ch] rounded-[var(--radius-card)] border border-dashed border-brass/50 bg-brass/5 p-4 text-[0.9375rem] leading-relaxed text-ink-soft">
+                  Want air conditioning? The{' '}
+                  <Link
+                    href="/rooms/premium-ac-room#book-online"
+                    className="font-medium text-ink underline decoration-brass decoration-2 underline-offset-4"
+                  >
+                    Premium AC
+                  </Link>{' '}
+                  is {formatINR(ROOMS_BY_SLUG['premium-ac-room'].price - room.price)} a night more — the
+                  same easy booking, our quietest room, cooler in summer.
+                </p>
+              ) : null}
               <div className="mt-8">
                 <OnlineBooking roomSlug={room.slug} source={`room_${room.slug}_online`} />
               </div>

@@ -48,6 +48,7 @@ export type AnalyticsEvent =
   | { name: 'call_click'; params: { source: string } }
   | { name: 'directions_click'; params: { source: string } }
   | { name: 'enquiry_submit'; params: { source: string; room?: string; nights?: number } }
+  | { name: 'book_online_click'; params: { source: string; room?: string } }
   | { name: 'room_view'; params: { room: string } }
   | { name: 'gallery_open'; params: { image: string } }
   | { name: 'faq_open'; params: { question: string } }

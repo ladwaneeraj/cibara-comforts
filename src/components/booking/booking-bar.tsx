@@ -1,12 +1,15 @@
 'use client'
 
-import { BedDouble, Users } from 'lucide-react'
+import { ArrowRight, BedDouble, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { WhatsAppAction } from '@/components/booking/actions'
 import { DateTrigger } from '@/components/booking/date-trigger'
 import { SelectTrigger, type SelectOption } from '@/components/booking/select-field'
+import { useBookingGate } from '@/components/booking/use-booking-gate'
+import { Button } from '@/components/ui/button'
 import { ROOMS, formatINR } from '@/content/rooms'
+import { onlineCategory } from '@/lib/booking-api'
 import { track } from '@/lib/analytics'
 import { estimateTotal, type Enquiry } from '@/lib/booking'
 import { addDaysISO, nightsBetween, useClientToday } from '@/lib/dates'
@@ -82,6 +85,13 @@ export function BookingBar({
   const [guests, setGuests] = useState(2)
   const [room, setRoom] = useState(roomSlug ?? '')
 
+  // When the ERP has online booking on, an online-bookable room must not also
+  // offer the WhatsApp "ask for availability" path — the guest books and pays
+  // online instead. A room with no online category (single, dormitory) and the
+  // kill-switch being off both keep the WhatsApp enquiry. 'checking' shows the
+  // enquiry too, so the hero's LCP element is stable and never a dead spinner.
+  const gate = useBookingGate()
+
   // 'idle' until the guest shows intent. Hovering preloads the chunk; tapping
   // mounts it already open, so the tap is not swallowed.
   //
@@ -119,6 +129,15 @@ export function BookingBar({
 
   const estimate = estimateTotal(enquiry)
   const nights = nightsBetween(range.checkIn, range.checkOut)
+
+  const online = gate === 'open' && (roomSlug ? Boolean(onlineCategory(roomSlug)) : true)
+  // On a locked room, the online form is this same page's #book-online section.
+  // On the homepage, jump to the chosen bookable room, else the rooms index.
+  const bookHref = roomSlug
+    ? '#book-online'
+    : room && onlineCategory(room)
+      ? `/rooms/${room}#book-online`
+      : '/rooms'
 
   return (
     <div
@@ -224,7 +243,9 @@ export function BookingBar({
             deliberate room selection, and shifts within 500ms of user input do
             not count against CLS. */}
         <p className="text-caption text-ink-mute" aria-live="polite">
-          {estimate ? (
+          {online ? (
+            'Live prices and instant confirmation. Pay securely online.'
+          ) : estimate ? (
             <>
               <span className="font-medium text-ink tnum">{formatINR(estimate.total)}</span> estimated
               for {estimate.nights} night{estimate.nights > 1 ? 's' : ''}.{' '}
@@ -235,21 +256,35 @@ export function BookingBar({
           )}
         </p>
 
-        <WhatsAppAction
-          source={source}
-          enquiry={enquiry}
-          size="lg"
-          variant="primary"
-          className="w-full shrink-0 sm:w-auto"
-          onClick={() =>
-            track({
-              name: 'enquiry_submit',
-              params: { source, room: room || undefined, nights },
-            })
-          }
-        >
-          Check availability
-        </WhatsAppAction>
+        {online ? (
+          <Button asChild size="lg" variant="primary" className="w-full shrink-0 sm:w-auto">
+            <a
+              href={bookHref}
+              onClick={() =>
+                track({ name: 'book_online_click', params: { source, room: room || undefined } })
+              }
+            >
+              Book online
+              <ArrowRight aria-hidden />
+            </a>
+          </Button>
+        ) : (
+          <WhatsAppAction
+            source={source}
+            enquiry={enquiry}
+            size="lg"
+            variant="primary"
+            className="w-full shrink-0 sm:w-auto"
+            onClick={() =>
+              track({
+                name: 'enquiry_submit',
+                params: { source, room: room || undefined, nights },
+              })
+            }
+          >
+            Check availability
+          </WhatsAppAction>
+        )}
       </div>
     </div>
   )
