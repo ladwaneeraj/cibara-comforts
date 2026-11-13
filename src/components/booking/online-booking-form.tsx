@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
+import { ArrowRight, Clock, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { WhatsAppAction, WhatsAppTextLink } from '@/components/booking/actions'
@@ -49,6 +49,17 @@ const field =
 const label = 'block text-[0.6875rem] font-medium tracking-[0.14em] text-ink-mute uppercase'
 const selectBox = 'overflow-hidden rounded-[0.625rem] border border-line'
 
+// 30-minute arrival slots for the required check-in time field.
+function _hhmm(mins: number): string {
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+}
+function _timeLabel(mins: number): string {
+  const h = Math.floor(mins / 60)
+  const period = h < 12 ? 'AM' : 'PM'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}:${String(mins % 60).padStart(2, '0')} ${period}`
+}
+
 /** Don't reuse a hold that is about to lapse mid-payment. */
 const HOLD_MARGIN_MS = 60_000
 
@@ -96,13 +107,10 @@ export function OnlineBookingForm({
   const checkOut = range?.checkOut ?? (today ? addDaysISO(today, 2) : '')
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0
 
-  // 24-hour policy: the guest checks in any time and the stay runs 24h per night,
-  // so there is no arrival-time field. The server still needs a check_in_time for
-  // the availability window. For a future date we send the hotel's reference
-  // time; for a SAME-DAY booking that time is usually already in the past (the
-  // ERP rejects it), so we send the current IST time + a short buffer that gives
-  // the guest headroom to finish paying before the hold re-checks it.
-  const time = today && checkIn === today ? nowTimeIST(30) : HOTEL.checkIn
+  // 24-hour policy: the stay runs a full 24h per night and the guest picks the
+  // arrival time (required). The chosen time drives the ERP availability window.
+  const [checkInTime, setCheckInTime] = useState('')
+  const time = checkInTime
   const [guestsChosen, setGuestsChosen] = useState('2')
   const guests = Math.min(Number(guestsChosen), room.maxGuests)
 
@@ -125,6 +133,21 @@ export function OnlineBookingForm({
     label: r.shortName,
     hint: formatINR(r.price),
   }))
+  // Required arrival time in 30-min slots. For a same-day booking the past slots
+  // are dropped so the guest can only pick a time the ERP will accept (it rejects
+  // a check-in time already in the past); nowTimeIST(30) adds payment headroom.
+  const timeOptions = useMemo<SelectOption[]>(() => {
+    let minMins = 0
+    if (today && checkIn === today) {
+      const [h, m] = nowTimeIST(30).split(':').map(Number)
+      minMins = Math.ceil((h * 60 + m) / 30) * 30
+    }
+    const opts: SelectOption[] = []
+    for (let mins = 0; mins < 24 * 60; mins += 30) {
+      if (mins >= minMins) opts.push({ value: _hhmm(mins), label: _timeLabel(mins) })
+    }
+    return opts
+  }, [today, checkIn])
 
   // The exact request body for these inputs, or null while they are incomplete.
   // `days` is the night count — the ERP's 24h-day unit (see the file comment).
@@ -379,7 +402,7 @@ export function OnlineBookingForm({
             <span className={cn(label, 'mb-2')}>Your stay</span>
             <DateRangeField checkIn={checkIn} checkOut={checkOut} onChange={setRange} />
           </div>
-          <div className={cn(selectBox, 'sm:col-span-2')}>
+          <div className={cn(selectBox)}>
             <SelectField
               label="Guests"
               icon={Users}
@@ -388,11 +411,20 @@ export function OnlineBookingForm({
               onChange={setGuestsChosen}
             />
           </div>
+          <div className={cn(selectBox)}>
+            <SelectField
+              label="Check-in time"
+              icon={Clock}
+              value={checkInTime}
+              options={timeOptions}
+              onChange={setCheckInTime}
+              placeholder="Select time"
+            />
+          </div>
         </div>
 
         <p className="mt-2 text-[0.75rem] leading-relaxed text-ink-mute">
-          Check in any time — each night is a full 24 hours, so you check out at the same time on your
-          last day.
+          Each night is a full 24 hours, so you check out at your check-in time on your last day.
           {stay && (
             <>
               {' '}You check out on <span className="text-ink">{formatShort(checkOut)}</span>.
@@ -403,7 +435,7 @@ export function OnlineBookingForm({
         {/* Availability and the server's price. This is the only price on the form. */}
         <div className="mt-6 rounded-[0.625rem] border border-line bg-paper-2 px-5 py-4" aria-live="polite">
           {!stay ? (
-            <p className="text-[0.9375rem] text-ink-mute">Choose your dates to see the live price.</p>
+            <p className="text-[0.9375rem] text-ink-mute">Choose your dates and check-in time to see the live price.</p>
           ) : checking ? (
             <p className="flex items-center gap-2 text-[0.9375rem] text-ink-mute">
               <Loader2 className="size-4 animate-spin" aria-hidden />
