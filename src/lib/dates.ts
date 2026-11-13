@@ -23,6 +23,24 @@ export function todayISO(): string {
   return toISO(new Date())
 }
 
+/**
+ * Current wall-clock time in the property's timezone as `HH:MM` (24h), plus an
+ * optional buffer in minutes. Used for a same-day check-in: the hotel's fixed
+ * reference time may already be in the past, which the ERP rejects, so a
+ * same-day booking sends "now + headroom" instead.
+ */
+export function nowTimeIST(bufferMinutes = 0): string {
+  const d = new Date(Date.now() + bufferMinutes * 60_000)
+  const hhmm = new Intl.DateTimeFormat('en-GB', {
+    timeZone: IST,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d)
+  // Some engines render midnight as "24:00"; normalise to "00:00".
+  return hhmm.startsWith('24') ? `00${hhmm.slice(2)}` : hhmm
+}
+
 /** Parses `YYYY-MM-DD` into a UTC-noon Date, which cannot drift across a DST edge. */
 export function fromISO(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)

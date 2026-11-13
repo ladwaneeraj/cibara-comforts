@@ -19,7 +19,7 @@ import {
   type Hold,
   type Stay,
 } from '@/lib/booking-api'
-import { addDaysISO, formatShort, nightsBetween, useClientToday } from '@/lib/dates'
+import { addDaysISO, formatShort, nightsBetween, nowTimeIST, useClientToday } from '@/lib/dates'
 import { loadRazorpay } from '@/lib/razorpay'
 import { cn } from '@/lib/utils'
 
@@ -98,8 +98,11 @@ export function OnlineBookingForm({
 
   // 24-hour policy: the guest checks in any time and the stay runs 24h per night,
   // so there is no arrival-time field. The server still needs a check_in_time for
-  // the availability window, so we send the hotel's reference time by default.
-  const time = HOTEL.checkIn
+  // the availability window. For a future date we send the hotel's reference
+  // time; for a SAME-DAY booking that time is usually already in the past (the
+  // ERP rejects it), so we send the current IST time + a short buffer that gives
+  // the guest headroom to finish paying before the hold re-checks it.
+  const time = today && checkIn === today ? nowTimeIST(30) : HOTEL.checkIn
   const [guestsChosen, setGuestsChosen] = useState('2')
   const guests = Math.min(Number(guestsChosen), room.maxGuests)
 
