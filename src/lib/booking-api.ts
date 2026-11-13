@@ -54,7 +54,7 @@ export type Guest = {
 }
 
 export type ApiConfig = { online_bookings_enabled: boolean; cleaning_gap_minutes?: number }
-export type Availability = { available: boolean; price: number; currency: string }
+export type Availability = { available: boolean; price: number; currency: string; remaining?: number }
 export type Hold = { booking_id: string; amount: number; expires_at: string }
 export type RazorpayOrder = { order_id: string; key_id: string; amount: number }
 

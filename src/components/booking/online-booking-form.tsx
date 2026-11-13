@@ -421,6 +421,13 @@ export function OnlineBookingForm({
               <span className="text-[0.8125rem] text-ink-mute">
                 total for {nights} night{nights === 1 ? '' : 's'}, taxes included · available
               </span>
+              {available.remaining != null && available.remaining <= 3 && (
+                <span className="rounded-full bg-terracotta/10 px-2.5 py-0.5 text-[0.8125rem] font-medium text-terracotta">
+                  {available.remaining === 1
+                    ? 'Only 1 room left'
+                    : `Only ${available.remaining} rooms left`}
+                </span>
+              )}
             </p>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
