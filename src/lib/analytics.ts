@@ -16,6 +16,10 @@
  * is simply never loaded.
  */
 
+// Mirror conversion/engagement events into the owner's own first-party ERP
+// analytics (no-op when the ERP base URL is unset). See lib/web-analytics.ts.
+import { sendWebEvent } from '@/lib/web-analytics'
+
 /**
  * Normalises an unset id to undefined.
  *
@@ -118,6 +122,12 @@ export function track(event: AnalyticsEvent): void {
   if (typeof window === 'undefined') return
 
   ensureGtag()
+
+  // First-party sink: the owner's ERP dashboard, alongside GA4/Meta below.
+  // Fire-and-forget and a no-op when the ERP base URL is unset. The `room`
+  // param, where an event carries one, lets the dashboard break clicks down by
+  // room; page defaults to the current path inside sendWebEvent.
+  sendWebEvent(event.name, { room: 'room' in event.params ? event.params.room : undefined })
 
   window.dataLayer?.push({ event: event.name, ...event.params })
   window.gtag?.('event', event.name, event.params)
