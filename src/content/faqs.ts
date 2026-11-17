@@ -30,7 +30,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Do I have to pay in advance?',
-    a: 'No. Nothing is charged when you book. You pay at check-in by cash, UPI, Google Pay, PhonePe, Paytm or bank transfer. Direct bookings can be cancelled free of charge up to 24 hours before check-in.',
+    a: 'Only if you book online. Booking online on cibaracomforts.com takes payment in full now through our secure Razorpay payment, and we confirm on WhatsApp. If you book on WhatsApp or by phone instead, nothing is charged in advance and you pay at check-in by cash, UPI, Google Pay, PhonePe, Paytm or bank transfer.',
     category: 'booking',
     homepage: true,
   },
