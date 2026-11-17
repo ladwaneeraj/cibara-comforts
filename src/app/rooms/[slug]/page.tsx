@@ -77,7 +77,12 @@ export default async function RoomPage({ params }: Props) {
         title={room.name}
         lead={room.summary}
       >
-        <BookingBar roomSlug={room.slug} source={`room_${room.slug}`} variant="inline" className="max-w-3xl" />
+        {/* Bookable rooms have the full online form in the #book-online section
+            below (it handles open / paused / checking), so the hero stays clean.
+            Non-bookable rooms keep the WhatsApp enquiry bar here as their entry. */}
+        {!onlineCategory(room.slug) && (
+          <BookingBar roomSlug={room.slug} source={`room_${room.slug}`} variant="inline" className="max-w-3xl" />
+        )}
       </PageHeader>
 
       {/* Online booking. Only the three rooms the ERP can sell; the others keep
@@ -86,31 +91,53 @@ export default async function RoomPage({ params }: Props) {
       {onlineCategory(room.slug) && (
         <Section tone="sand" id="book-online" labelledBy="book-online-heading" className="scroll-mt-24">
           <div className="container-page">
-            <div className="max-w-3xl">
-              <h2 id="book-online-heading" className="text-[length:var(--text-h2)]">
-                Book the {room.shortName} online
-              </h2>
-              <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-ink-soft">
-                Choose your dates, see the exact price and pay online. We confirm your booking on WhatsApp.
-              </p>
-              {/* Honest upgrade nudge on the non-AC bookable rooms: real price
-                  gap to the Premium AC, framed as value, never pressure. */}
-              {!room.ac && ROOMS_BY_SLUG['premium-ac-room'] ? (
-                <p className="mt-5 max-w-[56ch] rounded-[var(--radius-card)] border border-dashed border-brass/50 bg-brass/5 p-4 text-[0.9375rem] leading-relaxed text-ink-soft">
-                  Want air conditioning? The{' '}
-                  <Link
-                    href="/rooms/premium-ac-room#book-online"
-                    className="font-medium text-ink underline decoration-brass decoration-2 underline-offset-4"
-                  >
-                    Premium AC
-                  </Link>{' '}
-                  is {formatINR(ROOMS_BY_SLUG['premium-ac-room'].price - room.price)} a night more — the
-                  same easy booking, our quietest room, cooler in summer.
+            {/* Form on the left; on desktop the room's own photos fill what used
+                to be empty space beside it. Photos are hidden on mobile — the
+                full gallery sits just below — and stick while the form scrolls. */}
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:gap-12">
+              <div className="max-w-3xl">
+                <h2 id="book-online-heading" className="text-[length:var(--text-h2)]">
+                  Book the {room.shortName} online
+                </h2>
+                <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-ink-soft">
+                  Choose your dates, see the exact price and pay online. We confirm your booking on WhatsApp.
                 </p>
-              ) : null}
-              <div className="mt-8">
-                <OnlineBooking roomSlug={room.slug} source={`room_${room.slug}_online`} />
+                {/* Honest upgrade nudge on the non-AC bookable rooms: real price
+                    gap to the Premium AC, framed as value, never pressure. */}
+                {!room.ac && ROOMS_BY_SLUG['premium-ac-room'] ? (
+                  <p className="mt-5 max-w-[56ch] rounded-[var(--radius-card)] border border-dashed border-brass/50 bg-brass/5 p-4 text-[0.9375rem] leading-relaxed text-ink-soft">
+                    Want air conditioning? The{' '}
+                    <Link
+                      href="/rooms/premium-ac-room#book-online"
+                      className="font-medium text-ink underline decoration-brass decoration-2 underline-offset-4"
+                    >
+                      Premium AC
+                    </Link>{' '}
+                    is {formatINR(ROOMS_BY_SLUG['premium-ac-room'].price - room.price)} a night more — the
+                    same easy booking, our quietest room, cooler in summer.
+                  </p>
+                ) : null}
+                <div className="mt-8">
+                  <OnlineBooking roomSlug={room.slug} source={`room_${room.slug}_online`} />
+                </div>
               </div>
+
+              {room.photos.length > 0 && (
+                <aside className="hidden lg:block">
+                  <div className="sticky top-28 grid gap-4">
+                    {room.photos.slice(0, 2).map((photo) => (
+                      <Picture
+                        key={photo.id}
+                        id={photo.id}
+                        alt={photo.alt}
+                        sizes="40vw"
+                        ratio="4 / 3"
+                        className="rounded-[var(--radius-image)]"
+                      />
+                    ))}
+                  </div>
+                </aside>
+              )}
             </div>
           </div>
         </Section>

@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowRight, Clock, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
+import { ArrowRight, Check, Copy, Loader2, MessageCircle, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { WhatsAppAction, WhatsAppTextLink } from '@/components/booking/actions'
+import { ClockTimeField } from '@/components/booking/clock-time-field'
 import { DateRangeField } from '@/components/booking/date-range-field'
 import { SelectField, type SelectOption } from '@/components/booking/select-field'
 import { Picture } from '@/components/media/picture'
@@ -49,19 +50,53 @@ const field =
 const label = 'block text-[0.6875rem] font-medium tracking-[0.14em] text-ink-mute uppercase'
 const selectBox = 'overflow-hidden rounded-[0.625rem] border border-line'
 
-// 30-minute arrival slots for the required check-in time field.
-function _hhmm(mins: number): string {
-  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
-}
-function _timeLabel(mins: number): string {
-  const h = Math.floor(mins / 60)
-  const period = h < 12 ? 'AM' : 'PM'
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  return `${h12}:${String(mins % 60).padStart(2, '0')} ${period}`
+/**
+ * Round "HH:MM" up to the next :00/:30 so a same-day first slot is clean (no
+ * 16:50). shortcut: a time past 23:30 clamps to 23:30 — a lodge check-in
+ * booked online in that last half hour is a non-case; revisit if guests ask.
+ */
+function ceilHalfHour(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  const total = Math.min(1410, Math.ceil((h * 60 + m) / 30) * 30)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
 /** Don't reuse a hold that is about to lapse mid-payment. */
 const HOLD_MARGIN_MS = 60_000
+
+/**
+ * The post-payment receipt is kept in the guest's own browser so a refresh, a
+ * closed tab or a return visit still shows them their reference until the
+ * WhatsApp confirmation lands — the thing people panic about. Local only;
+ * nothing leaves the device, and it never claims the booking is confirmed.
+ * shortcut: 48h TTL — bump it if guests report losing it before confirmation.
+ */
+type Receipt = { reference: string; mobile: string; ts: number }
+const RECEIPT_KEY = 'cibara_booking_receipt'
+const RECEIPT_TTL = 48 * 60 * 60 * 1000
+
+function readReceipt(): Receipt | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(RECEIPT_KEY) || 'null') as Receipt | null
+    if (!r?.reference || Date.now() - r.ts > RECEIPT_TTL) {
+      localStorage.removeItem(RECEIPT_KEY)
+      return null
+    }
+    return r
+  } catch {
+    return null
+  }
+}
+function saveReceipt(r: Receipt) {
+  try {
+    localStorage.setItem(RECEIPT_KEY, JSON.stringify(r))
+  } catch {}
+}
+function removeReceipt() {
+  try {
+    localStorage.removeItem(RECEIPT_KEY)
+  } catch {}
+}
 
 type Phase = 'form' | 'working' | 'paying' | 'done'
 type Outcome = { key: string; result: Availability } | { key: string; failure: ApiFailure }
@@ -100,17 +135,17 @@ export function OnlineBookingForm({
   const roomName = roomInfo?.shortName ?? ''
   const photo = roomInfo?.photos[0]
 
-  // Check-in tomorrow, check-out the day after (one night) by default: "today at
-  // noon" is often already past, and the server rejects a check-in in the past.
+  // Check-in today, check-out tomorrow (one night) by default — the common case.
+  // A same-day check-in is fine: the time field's `min` keeps the arrival time
+  // in the future, and the server rejects a past one anyway.
   const [range, setRange] = useState<{ checkIn: string; checkOut: string } | null>(null)
-  const checkIn = range?.checkIn ?? (today ? addDaysISO(today, 1) : '')
-  const checkOut = range?.checkOut ?? (today ? addDaysISO(today, 2) : '')
+  const checkIn = range?.checkIn ?? (today ? today : '')
+  const checkOut = range?.checkOut ?? (today ? addDaysISO(today, 1) : '')
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0
 
   // 24-hour policy: the stay runs a full 24h per night and the guest picks the
   // arrival time (required). The chosen time drives the ERP availability window.
   const [checkInTime, setCheckInTime] = useState('')
-  const time = checkInTime
   const [guestsChosen, setGuestsChosen] = useState('2')
   const guests = Math.min(Number(guestsChosen), room.maxGuests)
 
@@ -123,6 +158,10 @@ export function OnlineBookingForm({
   const [payError, setPayError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reference, setReference] = useState<string | null>(null)
+  // Rehydrate a prior receipt (survives refresh). ssr:false on this component,
+  // so the initializer only runs in the browser — no hydration mismatch.
+  const [persisted, setPersisted] = useState<Receipt | null>(() => readReceipt())
+  const [copied, setCopied] = useState(false)
   const held = useRef<HeldBooking | null>(null)
 
   const guestOptions: SelectOption[] = Array.from({ length: room.maxGuests }, (_, i) => i + 1).map(
@@ -133,21 +172,13 @@ export function OnlineBookingForm({
     label: r.shortName,
     hint: formatINR(r.price),
   }))
-  // Required arrival time in 30-min slots. For a same-day booking the past slots
-  // are dropped so the guest can only pick a time the ERP will accept (it rejects
-  // a check-in time already in the past); nowTimeIST(30) adds payment headroom.
-  const timeOptions = useMemo<SelectOption[]>(() => {
-    let minMins = 0
-    if (today && checkIn === today) {
-      const [h, m] = nowTimeIST(30).split(':').map(Number)
-      minMins = Math.ceil((h * 60 + m) / 30) * 30
-    }
-    const opts: SelectOption[] = []
-    for (let mins = 0; mins < 24 * 60; mins += 30) {
-      if (mins >= minMins) opts.push({ value: _hhmm(mins), label: _timeLabel(mins) })
-    }
-    return opts
-  }, [today, checkIn])
+  // The arrival time (required). A native time input: typeable, no scrolling,
+  // Same-day: the dial can't go earlier than now + payment headroom (rounded
+  // up to a clean half hour); the server is the final check. Default to 1 PM
+  // (a common arrival), or that earliest time when it's already past 1 PM.
+  const sameDay = Boolean(today && checkIn === today)
+  const earliest = sameDay ? ceilHalfHour(nowTimeIST(30)) : ''
+  const time = checkInTime || (earliest && earliest > '13:00' ? earliest : '13:00')
 
   // The exact request body for these inputs, or null while they are incomplete.
   // `days` is the night count — the ERP's 24h-day unit (see the file comment).
@@ -297,8 +328,12 @@ export function OnlineBookingForm({
           // UX ONLY. This does not confirm anything. See the file comment.
           handler: () => {
             held.current = null
-            setReference(bookingId.slice(0, 8).toUpperCase())
+            const ref = bookingId.slice(0, 8).toUpperCase()
+            setReference(ref)
             setPhase('done')
+            // Keep the receipt so a refresh before WhatsApp confirmation still
+            // shows it. This does NOT confirm the booking — the webhook does.
+            saveReceipt({ reference: ref, mobile: guest.guest_mobile, ts: Date.now() })
           },
           // No client-side confirm and no cancel call: the hold expires itself.
           modal: {
@@ -321,37 +356,74 @@ export function OnlineBookingForm({
     }
   }
 
-  if (phase === 'done') {
+  // The confirmation screen shows for a live payment AND on a later visit, when
+  // a stored receipt is rehydrated after a refresh.
+  const liveRef = phase === 'done' && reference ? reference : null
+  const ref = liveRef ?? persisted?.reference ?? null
+  const mobile = liveRef ? guestMobile : persisted?.mobile ?? ''
+  if (ref) {
     return (
       <div className="rounded-[var(--radius-card)] border border-line bg-paper p-7 lg:p-8" role="status">
         <h3 className="text-[length:var(--text-h3)]">Thank you, we are confirming your booking</h3>
         <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-ink-soft">
-          The payment window reported success. Your booking is confirmed once our system has
-          received the payment confirmation from the bank, which normally takes under a minute. We
-          will message you on WhatsApp at {guestMobile} with the confirmation and check-in details.
+          The payment window reported success. Your booking is confirmed once our system has received
+          the payment confirmation from the bank, usually within a minute (up to about ten late at
+          night). We will message you on WhatsApp{mobile ? ` at ${mobile}` : ''} with the confirmation
+          and check-in details.
         </p>
-        {reference && (
-          <p className="mt-4 text-[0.8125rem] text-ink-mute">
-            Reference <span className="font-medium text-ink tnum">{reference}</span>
-          </p>
-        )}
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-[0.75rem] border border-line bg-paper-2 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[0.625rem] font-medium tracking-[0.14em] text-ink-mute uppercase">
+              Your reference
+            </p>
+            <p className="text-[1.05rem] font-medium text-ink tnum">{ref}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                navigator.clipboard?.writeText(ref)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              } catch {}
+            }}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[0.8125rem] text-ink-soft transition-colors hover:bg-paper"
+          >
+            {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+
         <p className="mt-4 max-w-[56ch] text-[0.8125rem] leading-relaxed text-ink-mute">
-          If you have not heard from us in a few minutes, message reception with this reference and
-          we will check straight away.
+          Keep this reference — it stays on this page even if you refresh or come back later. If you
+          have not heard from us in a few minutes, send it to us on WhatsApp and we will check straight
+          away.
         </p>
-        <WhatsAppAction
-          source={`${source}_paid`}
-          enquiry={{
-            roomSlug: slug,
-            source: `${source}_paid`,
-            note: reference ? `Booking reference: ${reference}` : undefined,
-          }}
-          size="lg"
-          variant="primary"
-          className="mt-6 w-full sm:w-auto"
-        >
-          Message reception
-        </WhatsAppAction>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <WhatsAppAction
+            source={`${source}_paid`}
+            enquiry={{ roomSlug: slug, source: `${source}_paid`, note: `Booking reference: ${ref}` }}
+            size="lg"
+            variant="primary"
+            className="w-full sm:w-auto"
+          >
+            Message reception
+          </WhatsAppAction>
+          <button
+            type="button"
+            onClick={() => {
+              removeReceipt()
+              setPersisted(null)
+              setReference(null)
+              setPhase('form')
+            }}
+            className="text-[0.8125rem] text-ink-mute underline underline-offset-4 transition-colors hover:text-ink"
+          >
+            Book another room
+          </button>
+        </div>
       </div>
     )
   }
@@ -412,14 +484,7 @@ export function OnlineBookingForm({
             />
           </div>
           <div className={cn(selectBox)}>
-            <SelectField
-              label="Check-in time"
-              icon={Clock}
-              value={checkInTime}
-              options={timeOptions}
-              onChange={setCheckInTime}
-              placeholder="Select time"
-            />
+            <ClockTimeField value={time} min={earliest || undefined} onChange={setCheckInTime} />
           </div>
         </div>
 
