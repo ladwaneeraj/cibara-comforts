@@ -33,7 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return pageMetadata({
     title: `${room.shortName} Room, ${formatINR(room.price)}`,
-    description: `${room.summary} ${formatINR(room.price)} per ${room.priceUnit} at ${HOTEL.name}, Harihar. Free cancellation, pay at the hotel.`,
+    // Bookable rooms are prepaid online (non-refundable), so they must not
+    // advertise free cancellation / pay-at-hotel; enquiry-only rooms still do.
+    description: `${room.summary} ${formatINR(room.price)} per ${room.priceUnit} at ${HOTEL.name}, Harihar.${onlineCategory(slug) ? '' : ' Free cancellation, pay at the hotel.'}`,
     path: `/rooms/${room.slug}`,
     image: `/og/room-${room.slug}.jpg`,
     imageAlt: room.photos[0]?.alt ?? room.name,
@@ -277,9 +279,14 @@ export default async function RoomPage({ params }: Props) {
                     <Row label="Check out" value="24 hours after check-in" />
                   </dl>
 
-                  <p className="mt-6 border-t border-line pt-6 text-[0.8125rem] leading-relaxed text-ink-mute">
-                    {HOTEL.policies.cancellation}
-                  </p>
+                  {/* Enquiry-only rooms are pay-at-hotel with free cancellation.
+                      Bookable rooms are prepaid and non-refundable (stated at the
+                      Pay button), so they don't repeat a cancellation promise here. */}
+                  {!onlineCategory(room.slug) && (
+                    <p className="mt-6 border-t border-line pt-6 text-[0.8125rem] leading-relaxed text-ink-mute">
+                      {HOTEL.policies.cancellation}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-6 rounded-[var(--radius-card)] border border-line p-6">
