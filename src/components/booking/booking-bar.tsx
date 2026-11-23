@@ -131,13 +131,27 @@ export function BookingBar({
   const nights = nightsBetween(range.checkIn, range.checkOut)
 
   const online = gate === 'open' && (roomSlug ? Boolean(onlineCategory(roomSlug)) : true)
+  // Carry the guest's chosen stay to the room page's booking form so they don't
+  // re-pick it (the form reads these on mount). See online-booking-form.tsx.
+  const stayQuery = (() => {
+    const p = new URLSearchParams()
+    if (range.checkIn) p.set('checkIn', range.checkIn)
+    if (range.checkOut) p.set('checkOut', range.checkOut)
+    p.set('guests', String(guests))
+    const q = p.toString()
+    return q ? `?${q}` : ''
+  })()
   // On a locked room, the online form is this same page's #book-online section.
-  // On the homepage, jump to the chosen bookable room, else the rooms index.
+  // With a room chosen, jump straight to its booking form. With no room chosen,
+  // this is a browse step, not a booking — so the label and destination say so,
+  // and the chosen dates ride along to the rooms list (and onward to the form).
+  const hasRoom = Boolean(roomSlug || (room && onlineCategory(room)))
+  const bookLabel = hasRoom ? 'Book online' : 'See rooms & prices'
   const bookHref = roomSlug
     ? '#book-online'
     : room && onlineCategory(room)
-      ? `/rooms/${room}#book-online`
-      : '/rooms'
+      ? `/rooms/${room}${stayQuery}#book-online`
+      : `/rooms${stayQuery}`
 
   return (
     <div
@@ -257,14 +271,14 @@ export function BookingBar({
         </p>
 
         {online ? (
-          <Button asChild size="lg" variant="primary" className="w-full shrink-0 sm:w-auto">
+          <Button asChild size="lg" variant="brass" className="w-full shrink-0 sm:w-auto">
             <a
               href={bookHref}
               onClick={() =>
                 track({ name: 'book_online_click', params: { source, room: room || undefined } })
               }
             >
-              Book online
+              {bookLabel}
               <ArrowRight aria-hidden />
             </a>
           </Button>

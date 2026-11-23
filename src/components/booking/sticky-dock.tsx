@@ -1,8 +1,10 @@
 'use client'
 
 import { ArrowUp, MessageCircle, Navigation, Phone } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { track } from '@/lib/analytics'
+import { onlineCategory } from '@/lib/booking-api'
 import { DIRECTIONS_URL, TEL_URL, whatsappUrl } from '@/lib/booking'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +27,14 @@ import { cn } from '@/lib/utils'
 export function StickyDock({ roomSlug }: { roomSlug?: string }) {
   const [visible, setVisible] = useState(false)
   const [deep, setDeep] = useState(false)
+
+  // On a bookable room page the booking-led RoomStickyCta owns the mobile
+  // bottom bar, so this generic contact bar steps aside there (mobile only —
+  // the desktop rail and back-to-top stay). The spacer below is kept so the
+  // footer still clears whichever bar is at the bottom.
+  const pathname = usePathname()
+  const roomOnPath = pathname?.match(/^\/rooms\/([^/]+)/)?.[1]
+  const hideMobileBar = Boolean(roomOnPath && onlineCategory(roomOnPath))
 
   useEffect(() => {
     // One listener for both thresholds. The dock appears past the hero; back
@@ -92,7 +102,7 @@ export function StickyDock({ roomSlug }: { roomSlug?: string }) {
           'border-t border-line bg-paper/92 backdrop-blur-xl',
           'pb-[env(safe-area-inset-bottom)]',
           'transition-transform duration-500 ease-[var(--ease-swift)]',
-          visible ? 'translate-y-0' : 'translate-y-full',
+          hideMobileBar ? 'hidden' : visible ? 'translate-y-0' : 'translate-y-full',
         )}
       >
         <ul className="grid grid-cols-3">
