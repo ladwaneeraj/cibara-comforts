@@ -71,6 +71,7 @@ export const ROOMS: Room[] = [
     ],
     amenities: ['wifi', 'ac', 'tv', 'hot-water', 'housekeeping', 'room-service', 'power-backup', 'parking'],
     photos: [
+      { id: 'premium4', alt: 'Premium air conditioned room at Cibara Comforts with a made-up queen bed, patterned runner, green wainscot and cane wall discs' },
       { id: 'hero2', alt: 'Premium air conditioned room at Cibara Comforts with a queen bed, green wainscot walls and cane wall discs' },
       { id: 'premium2', alt: 'Electric kettle, cups and complimentary tea set on a tray beside the bed in a Premium room' },
       { id: 'hero1', alt: 'Premium room interior showing patterned cement tile, dressing mirror and reading lamps' },

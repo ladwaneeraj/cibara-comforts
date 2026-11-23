@@ -6,7 +6,7 @@ import { Picture, PicturePreload } from '@/components/media/picture'
 import { HOTEL } from '@/content/hotel'
 import { formatINR, LOWEST_RATE } from '@/content/rooms'
 
-const HERO_IMAGE = 'hero2' as const
+const HERO_IMAGE = 'premium4' as const
 const HERO_SIZES = '100vw'
 
 /**
@@ -37,7 +37,7 @@ export function Hero() {
           priority
           className="h-full w-full"
           imgClassName="ken-burns"
-          focal="52% 58%"
+          focal="52% 78%"
         />
         {/* Three-stop scrim.
             A single overlay either washes out the photograph or leaves the

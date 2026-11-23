@@ -2,6 +2,7 @@ import { Check, Minus } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/page-header'
+import { CarryDatesLink } from '@/components/rooms/carry-dates-link'
 import { Reveal } from '@/components/motion/reveal'
 import { Picture } from '@/components/media/picture'
 import { ClosingCta } from '@/components/sections/closing-cta'
@@ -61,7 +62,7 @@ export default function RoomsPage() {
                   )}
                 >
                   <figure>
-                    <Link
+                    <CarryDatesLink
                       href={`/rooms/${room.slug}`}
                       className="group block overflow-hidden rounded-[var(--radius-card)]"
                     >
@@ -77,7 +78,7 @@ export default function RoomsPage() {
                         <NoPhotoPanel label={room.shortName} />
                       )}
                       <span className="sr-only">See the {room.name}</span>
-                    </Link>
+                    </CarryDatesLink>
                   </figure>
 
                   <div>
@@ -107,12 +108,12 @@ export default function RoomsPage() {
                     </dl>
 
                     <div className="mt-7 flex flex-wrap items-center gap-4">
-                      <Link
+                      <CarryDatesLink
                         href={`/rooms/${room.slug}`}
                         className="inline-flex h-12 items-center rounded-full bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-forest"
                       >
                         See the {room.shortName}
-                      </Link>
+                      </CarryDatesLink>
                       <p className="text-[0.8125rem] text-ink-mute">
                         Best for {room.bestFor.join(', ').toLowerCase()}
                       </p>

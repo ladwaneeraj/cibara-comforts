@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BookingBar } from '@/components/booking/booking-bar'
 import { OnlineBooking } from '@/components/booking/online-booking'
+import { RoomStickyCta } from '@/components/booking/room-sticky-cta'
 import { PageHeader } from '@/components/layout/page-header'
+import { RoomHeroMobile } from '@/components/rooms/room-hero-mobile'
 import { Picture } from '@/components/media/picture'
 import { Reveal } from '@/components/motion/reveal'
 import { Faqs } from '@/components/sections/faq'
@@ -18,6 +20,7 @@ import { formatINR, ROOMS, ROOMS_BY_SLUG } from '@/content/rooms'
 import { breadcrumbNode, faqNode, jsonLdGraph, roomNode } from '@/lib/schema'
 import { onlineCategory } from '@/lib/booking-api'
 import { pageMetadata } from '@/lib/seo'
+import { cn } from '@/lib/utils'
 
 /** One static route per room. `dynamicParams` is implicitly false on export. */
 export function generateStaticParams() {
@@ -47,6 +50,11 @@ export default async function RoomPage({ params }: Props) {
   const room = ROOMS_BY_SLUG[slug]
   if (!room) notFound()
 
+  // The three online-bookable rooms get the mobile conversion treatment: a
+  // photo-first hero and a sticky Book-online bar. The classic header is kept
+  // for desktop and for enquiry-only rooms.
+  const bookable = Boolean(onlineCategory(room.slug))
+
   const crumbs = [
     { name: 'Home', path: '/' },
     { name: 'Rooms', path: '/rooms' },
@@ -73,7 +81,10 @@ export default async function RoomPage({ params }: Props) {
         }}
       />
 
+      {bookable && <RoomHeroMobile room={room} />}
+
       <PageHeader
+        className={cn(bookable && 'hidden lg:block')}
         crumbs={crumbs}
         eyebrow={`${formatINR(room.price)} per ${room.priceUnit} · sleeps up to ${room.occupancy.max}`}
         title={room.name}
@@ -97,7 +108,10 @@ export default async function RoomPage({ params }: Props) {
                 to be empty space beside it. Photos are hidden on mobile — the
                 full gallery sits just below — and stick while the form scrolls. */}
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:gap-12">
-              <div className="max-w-3xl">
+              {/* min-w-0: a grid item's default min-width is its content's
+                  min-content, which blows the single mobile column past the
+                  viewport (horizontal scroll). Letting it shrink fixes that. */}
+              <div className="max-w-3xl min-w-0">
                 <h2 id="book-online-heading" className="text-[length:var(--text-h2)]">
                   Book the {room.shortName} online
                 </h2>
@@ -367,6 +381,8 @@ export default async function RoomPage({ params }: Props) {
         lead="If it is not answered here, WhatsApp reception. Somebody replies within a few minutes, at any hour."
         tone="paper"
       />
+
+      {bookable && <RoomStickyCta roomSlug={room.slug} price={room.price} />}
     </>
   )
 }

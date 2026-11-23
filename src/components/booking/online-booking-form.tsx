@@ -112,6 +112,19 @@ const TIER_BADGE: Record<string, string> = {
   'double-room': 'Budget Friendly',
 }
 
+/**
+ * Dates/guests the guest already picked in the homepage booking bar, carried
+ * here as query params (`?checkIn=&checkOut=&guests=`). Client-only — this form
+ * is ssr:false, so reading the URL on mount is safe.
+ */
+function initialFromUrl(): { checkIn?: string; checkOut?: string; guests?: string } {
+  if (typeof window === 'undefined') return {}
+  const p = new URLSearchParams(window.location.search)
+  const iso = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined)
+  const g = p.get('guests')
+  return { checkIn: iso(p.get('checkIn')), checkOut: iso(p.get('checkOut')), guests: g && /^\d+$/.test(g) ? g : undefined }
+}
+
 export function OnlineBookingForm({
   roomSlug,
   source,
@@ -138,7 +151,10 @@ export function OnlineBookingForm({
   // Check-in today, check-out tomorrow (one night) by default — the common case.
   // A same-day check-in is fine: the time field's `min` keeps the arrival time
   // in the future, and the server rejects a past one anyway.
-  const [range, setRange] = useState<{ checkIn: string; checkOut: string } | null>(null)
+  const [range, setRange] = useState<{ checkIn: string; checkOut: string } | null>(() => {
+    const u = initialFromUrl()
+    return u.checkIn && u.checkOut ? { checkIn: u.checkIn, checkOut: u.checkOut } : null
+  })
   const checkIn = range?.checkIn ?? (today ? today : '')
   const checkOut = range?.checkOut ?? (today ? addDaysISO(today, 1) : '')
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0
@@ -146,7 +162,7 @@ export function OnlineBookingForm({
   // 24-hour policy: the stay runs a full 24h per night and the guest picks the
   // arrival time (required). The chosen time drives the ERP availability window.
   const [checkInTime, setCheckInTime] = useState('')
-  const [guestsChosen, setGuestsChosen] = useState('2')
+  const [guestsChosen, setGuestsChosen] = useState(() => initialFromUrl().guests ?? '2')
   const guests = Math.min(Number(guestsChosen), room.maxGuests)
 
   const [guestName, setGuestName] = useState('')
@@ -531,9 +547,14 @@ export function OnlineBookingForm({
             </p>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[0.9375rem] text-ink">
-                Sorry, the {roomName} is not available for those dates. Try different dates or room.
-              </p>
+              <div>
+                <span className="inline-flex items-center rounded-md bg-terracotta px-2.5 py-1 text-[0.8125rem] font-bold tracking-[0.08em] text-white uppercase">
+                  Sold out
+                </span>
+                <p className="mt-2 text-[0.875rem] text-ink-soft">
+                  No {roomName} rooms left for these dates. Try different dates or room.
+                </p>
+              </div>
               <WhatsAppTextLink source={`${source}_unavailable`} enquiry={{ roomSlug: slug, source }}>
                 Ask us on WhatsApp
               </WhatsAppTextLink>
@@ -556,7 +577,10 @@ export function OnlineBookingForm({
           </Link>
         )}
 
-        {/* Guest details. */}
+        {/* Guest details, order summary and Pay appear only once a room is
+            actually available — no point collecting a name for a sold-out date. */}
+        {available && (
+          <>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor={`${uid}-name`} className={label}>
@@ -639,7 +663,7 @@ export function OnlineBookingForm({
           </p>
         )}
 
-        <Button type="submit" size="lg" className="mt-6 w-full" disabled={!available || busy}>
+        <Button type="submit" variant="brass" size="lg" className="mt-6 w-full" disabled={!available || busy}>
           {busy ? (
             <>
               <Loader2 className="animate-spin" aria-hidden />
@@ -655,6 +679,8 @@ export function OnlineBookingForm({
 
         {/* The one no-refund line. Final pay step only, deliberately understated. */}
         <p className="mt-3 text-center text-[0.75rem] text-ink-mute">Payments are non-refundable.</p>
+          </>
+        )}
 
         {/* Trust row: real, verifiable signals only. */}
         <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-5 text-[0.75rem] text-ink-mute">

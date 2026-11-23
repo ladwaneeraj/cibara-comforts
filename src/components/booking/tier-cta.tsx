@@ -29,7 +29,7 @@ export function TierCta({
       <Button
         asChild
         size="lg"
-        variant={featured ? 'primary' : 'outline'}
+        variant={featured ? 'brass' : 'outline'}
         className="mt-6 w-full"
       >
         <a
