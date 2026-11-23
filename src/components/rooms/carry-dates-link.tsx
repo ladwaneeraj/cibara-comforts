@@ -34,6 +34,10 @@ export function CarryDatesLink({
         const value = incoming.get(key)
         if (value) out.set(key, value)
       }
+      // One-time read of the browser-only URL on mount (the site is a static
+      // export, so the query isn't known at render); the single extra render is
+      // intentional and cheap.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery(out.toString())
     } catch {}
   }, [])

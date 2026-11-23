@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowRight, MessageCircle } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useBookingGate } from '@/components/booking/use-booking-gate'
 import { track } from '@/lib/analytics'
 import { whatsappUrl } from '@/lib/booking'
